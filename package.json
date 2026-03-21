@@ -1,0 +1,33 @@
+{
+  "name": "ecommerce-platform",
+  "version": "1.0.0",
+  "description": "Complete E-commerce Platform with React, Redux, Express, and MongoDB",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix backend\" \"npm --prefix frontend run start\"",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm --prefix frontend run start",
+    "start": "npm run dev",
+    "build": "npm --prefix frontend run build",
+    "build:backend": "echo 'Backend does not require build'",
+    "test": "npm --prefix frontend test",
+    "test:backend": "npm --prefix backend test",
+    "seed": "npm run seed --prefix backend",
+    "install:all": "npm install && npm install --prefix backend && npm install --prefix frontend",
+    "audit": "npm audit && npm audit --prefix backend && npm audit --prefix frontend",
+    "audit:fix": "npm audit fix && npm audit fix --prefix backend && npm audit fix --prefix frontend"
+  },
+  "keywords": [
+    "ecommerce",
+    "react",
+    "express",
+    "mongodb",
+    "redux"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@react-native-community/cli": "^20.1.2",
+    "concurrently": "^8.2.2"
+  }
+}
