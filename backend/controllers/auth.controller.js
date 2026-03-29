@@ -135,7 +135,11 @@ const refreshToken = asyncHandler(async (req, res) => {
   const token = req.cookies?.[REFRESH_COOKIE_NAME] || req.body.refreshToken;
 
   if (!token) {
-    throw new AppError('Refresh token is required', 401);
+    clearAuthCookies(res);
+    return res.status(401).json({
+      success: false,
+      message: 'Refresh token is required',
+    });
   }
 
   const decoded = verifyRefreshToken(token);
