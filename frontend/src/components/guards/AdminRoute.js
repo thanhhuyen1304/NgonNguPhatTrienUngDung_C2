@@ -4,10 +4,10 @@ import { useSelector } from 'react-redux';
 import Loading from '../common/Loading';
 
 const AdminRoute = () => {
-  const { user, isAuthenticated, loading } = useSelector((state) => state.auth);
+  const { user, isAuthenticated, loading, initialized } = useSelector((state) => state.auth);
   const location = useLocation();
 
-  if (loading) {
+  if (loading || !initialized) {
     return <Loading fullScreen />;
   }
 

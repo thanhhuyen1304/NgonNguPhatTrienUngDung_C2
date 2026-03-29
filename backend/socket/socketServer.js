@@ -4,6 +4,21 @@ const User = require('../models/User');
 
 let io;
 
+const getCookieValue = (cookieHeader, name) => {
+  if (!cookieHeader) {
+    return null;
+  }
+
+  const cookies = cookieHeader.split(';').map((item) => item.trim());
+  const target = cookies.find((item) => item.startsWith(`${name}=`));
+
+  if (!target) {
+    return null;
+  }
+
+  return decodeURIComponent(target.slice(name.length + 1));
+};
+
 // Initialize Socket.IO server
 const initializeSocket = (server) => {
   io = new Server(server, {
@@ -25,7 +40,10 @@ const initializeSocket = (server) => {
   // Authentication middleware for socket connections
   io.use(async (socket, next) => {
     try {
-      let token = socket.handshake.auth.token || socket.handshake.headers.authorization;
+      let token =
+        socket.handshake.auth.token ||
+        getCookieValue(socket.handshake.headers.cookie, 'accessToken') ||
+        socket.handshake.headers.authorization;
       if (token && typeof token === 'string' && token.startsWith('Bearer ')) {
         token = token.replace('Bearer ', '');
       }

@@ -2,18 +2,24 @@ const jwt = require('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 
+const getAccessTokenFromRequest = (req) => {
+  if (req.cookies?.accessToken) {
+    return req.cookies.accessToken;
+  }
+
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    return req.headers.authorization.split(' ')[1];
+  }
+
+  return null;
+};
+
 // Protect routes - verify JWT token
 const protect = asyncHandler(async (req, res, next) => {
-  let token;
+  const token = getAccessTokenFromRequest(req);
 
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer')
-  ) {
+  if (token) {
     try {
-      // Get token from header
-      token = req.headers.authorization.split(' ')[1];
-
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
@@ -30,7 +36,7 @@ const protect = asyncHandler(async (req, res, next) => {
         throw new Error('User account is deactivated');
       }
 
-      next();
+      return next();
     } catch (error) {
       console.error('Auth Error:', error.message);
       
@@ -64,12 +70,10 @@ const protect = asyncHandler(async (req, res, next) => {
     }
   }
 
-  if (!token) {
-    return res.status(401).json({
-      success: false,
-      message: 'Not authorized, no token'
-    });
-  }
+  return res.status(401).json({
+    success: false,
+    message: 'Not authorized, no token'
+  });
 });
 
 // Admin middleware
@@ -98,14 +102,10 @@ const shipper = (req, res, next) => {
 
 // Optional auth - doesn't fail if no token
 const optionalAuth = asyncHandler(async (req, res, next) => {
-  let token;
+  const token = getAccessTokenFromRequest(req);
 
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer')
-  ) {
+  if (token) {
     try {
-      token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       req.user = await User.findById(decoded.id).select('-password -refreshToken');
     } catch (error) {
@@ -148,4 +148,5 @@ module.exports = {
   generateAccessToken,
   generateRefreshToken,
   verifyRefreshToken,
+  getAccessTokenFromRequest,
 };

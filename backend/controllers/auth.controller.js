@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 const { AppError } = require('../middleware/errorHandler');
@@ -7,54 +8,87 @@ const {
   verifyRefreshToken,
 } = require('../middleware/auth');
 
+const ACCESS_COOKIE_NAME = 'accessToken';
+const REFRESH_COOKIE_NAME = 'refreshToken';
+
+const isProduction = process.env.NODE_ENV === 'production';
+
+const baseCookieOptions = {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: isProduction ? 'none' : 'lax',
+};
+
+const accessCookieOptions = {
+  ...baseCookieOptions,
+  maxAge: 15 * 60 * 1000,
+};
+
+const refreshCookieOptions = {
+  ...baseCookieOptions,
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+};
+
+const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+
+const buildSafeUser = (user) => ({
+  _id: user._id,
+  name: user.name,
+  email: user.email,
+  role: user.role,
+  avatar: user.avatar,
+  phone: user.phone,
+  address: user.address,
+  shipperInfo: user.shipperInfo,
+  isEmailVerified: user.isEmailVerified,
+});
+
+const clearAuthCookies = (res) => {
+  res.clearCookie(ACCESS_COOKIE_NAME, baseCookieOptions);
+  res.clearCookie(REFRESH_COOKIE_NAME, baseCookieOptions);
+};
+
+const issueAuthSession = async (user, res) => {
+  const accessToken = generateAccessToken(user._id);
+  const refreshToken = generateRefreshToken(user._id);
+
+  user.refreshToken = hashToken(refreshToken);
+  await user.save();
+
+  res.cookie(ACCESS_COOKIE_NAME, accessToken, accessCookieOptions);
+  res.cookie(REFRESH_COOKIE_NAME, refreshToken, refreshCookieOptions);
+
+  return accessToken;
+};
+
 // @desc    Register new user
 // @route   POST /api/auth/register
 // @access  Public
 const register = asyncHandler(async (req, res) => {
-  const { name, email, password, role, shipperInfo } = req.body;
+  const { name, email, password } = req.body;
 
-  // Check if user exists
   const userExists = await User.findOne({ email });
   if (userExists) {
     throw new AppError('User already exists with this email', 400);
   }
 
-  // Create user
   const user = await User.create({
     name,
     email,
     password,
-    role: role || 'user',
-    shipperInfo: role === 'shipper' ? shipperInfo : undefined,
+    role: 'user',
   });
 
-  if (user) {
-    // Generate tokens
-    const accessToken = generateAccessToken(user._id);
-    const refreshToken = generateRefreshToken(user._id);
+  const accessToken = await issueAuthSession(user, res);
 
-    // Save refresh token to database
-    user.refreshToken = refreshToken;
-    await user.save();
-
-    res.status(201).json({
-      success: true,
-      message: 'Registration successful',
-      data: {
-        user: {
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          avatar: user.avatar,
-        },
-        accessToken,
-        refreshToken,
-      },
-    });
-  } else {
-    throw new AppError('Invalid user data', 400);
-  }
+  res.status(201).json({
+    success: true,
+    message: 'Registration successful',
+    data: {
+      user: buildSafeUser(user),
+      accessToken,
+    },
+  });
 });
 
 // @desc    Login user
@@ -63,50 +97,33 @@ const register = asyncHandler(async (req, res) => {
 const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  // Find user and include password
-  const user = await User.findOne({ email }).select('+password');
+  const user = await User.findOne({ email }).select('+password +refreshToken');
 
   if (!user) {
     throw new AppError('Invalid email or password', 401);
   }
 
-  // Check if user has password (might be Google-only account)
   if (!user.password) {
     throw new AppError('Please login using Google', 401);
   }
 
-  // Check password
   const isMatch = await user.comparePassword(password);
   if (!isMatch) {
     throw new AppError('Invalid email or password', 401);
   }
 
-  // Check if user is active
   if (!user.isActive) {
     throw new AppError('Your account has been deactivated', 401);
   }
 
-  // Generate tokens
-  const accessToken = generateAccessToken(user._id);
-  const refreshToken = generateRefreshToken(user._id);
-
-  // Save refresh token to database
-  user.refreshToken = refreshToken;
-  await user.save();
+  const accessToken = await issueAuthSession(user, res);
 
   res.json({
     success: true,
     message: 'Login successful',
     data: {
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        avatar: user.avatar,
-      },
+      user: buildSafeUser(user),
       accessToken,
-      refreshToken,
     },
   });
 });
@@ -115,37 +132,35 @@ const login = asyncHandler(async (req, res) => {
 // @route   POST /api/auth/refresh-token
 // @access  Public
 const refreshToken = asyncHandler(async (req, res) => {
-  const { refreshToken: token } = req.body;
+  const token = req.cookies?.[REFRESH_COOKIE_NAME] || req.body.refreshToken;
 
   if (!token) {
     throw new AppError('Refresh token is required', 401);
   }
 
-  // Verify refresh token
   const decoded = verifyRefreshToken(token);
   if (!decoded) {
+    clearAuthCookies(res);
     throw new AppError('Invalid or expired refresh token', 401);
   }
 
-  // Find user and verify refresh token matches
   const user = await User.findById(decoded.id).select('+refreshToken');
-  if (!user || user.refreshToken !== token) {
+  if (!user || !user.refreshToken || user.refreshToken !== hashToken(token)) {
+    clearAuthCookies(res);
     throw new AppError('Invalid refresh token', 401);
   }
 
-  // Generate new tokens
-  const newAccessToken = generateAccessToken(user._id);
-  const newRefreshToken = generateRefreshToken(user._id);
+  if (!user.isActive) {
+    clearAuthCookies(res);
+    throw new AppError('Your account has been deactivated', 401);
+  }
 
-  // Update refresh token in database
-  user.refreshToken = newRefreshToken;
-  await user.save();
+  const accessToken = await issueAuthSession(user, res);
 
   res.json({
     success: true,
     data: {
-      accessToken: newAccessToken,
-      refreshToken: newRefreshToken,
+      accessToken,
     },
   });
 });
@@ -154,8 +169,8 @@ const refreshToken = asyncHandler(async (req, res) => {
 // @route   POST /api/auth/logout
 // @access  Private
 const logout = asyncHandler(async (req, res) => {
-  // Clear refresh token in database
   await User.findByIdAndUpdate(req.user._id, { refreshToken: null });
+  clearAuthCookies(res);
 
   res.json({
     success: true,
@@ -172,7 +187,7 @@ const getMe = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     data: {
-      user,
+      user: buildSafeUser(user),
     },
   });
 });
@@ -181,69 +196,69 @@ const getMe = asyncHandler(async (req, res) => {
 // @route   PUT /api/auth/profile
 // @access  Private
 const updateProfile = asyncHandler(async (req, res) => {
-  const { name, phone, street, city, state, zipCode, country } = req.body;
-
-  // Debug: log incoming body and file when in development
-  if (process.env.NODE_ENV === 'development') {
-    console.log('updateProfile called. body:', req.body);
-    console.log('updateProfile file:', req.file ? { originalname: req.file.originalname, path: req.file.path, hasBuffer: !!req.file.buffer } : null);
-  }
+  const {
+    name,
+    phone,
+    street,
+    city,
+    state,
+    zipCode,
+    country,
+    address,
+  } = req.body;
 
   const user = await User.findById(req.user._id);
 
-  if (user) {
-    user.name = name || user.name;
-    user.phone = phone || user.phone;
-    
-    // Update address
-    if (street || city || state || zipCode || country) {
-      user.address = {
-        street: street || user.address?.street,
-        city: city || user.address?.city,
-        state: state || user.address?.state,
-        zipCode: zipCode || user.address?.zipCode,
-        country: country || user.address?.country,
-      };
-    }
-
-    // Update avatar if file is uploaded
-    if (req.file) {
-      // If CloudinaryStorage used, multer will set req.file.path
-      if (req.file.path) {
-        user.avatar = req.file.path;
-      } else if (req.file.buffer) {
-        // If memoryStorage used, upload buffer to cloudinary (if configured)
-        const { uploadBuffer } = require('../config/cloudinary');
-        try {
-          const uploadResult = await uploadBuffer(req.file.buffer, 'ecommerce/avatars');
-          if (uploadResult && (uploadResult.secure_url || uploadResult.url)) {
-            user.avatar = uploadResult.secure_url || uploadResult.url;
-          }
-        } catch (err) {
-          console.error('Avatar upload failed:', err);
-          // continue without blocking profile update
-        }
-      }
-    }
-
-    let updatedUser;
-    try {
-      updatedUser = await user.save();
-    } catch (saveErr) {
-      console.error('Failed to save user in updateProfile:', saveErr);
-      throw saveErr;
-    }
-
-    res.json({
-      success: true,
-      message: 'Profile updated successfully',
-      data: {
-        user: updatedUser,
-      },
-    });
-  } else {
+  if (!user) {
     throw new AppError('User not found', 404);
   }
+
+  user.name = name || user.name;
+  user.phone = phone || user.phone;
+
+  const nextAddress = address && typeof address === 'object' ? address : {
+    street,
+    city,
+    state,
+    zipCode,
+    country,
+  };
+
+  if (Object.values(nextAddress).some(Boolean)) {
+    user.address = {
+      street: nextAddress.street || user.address?.street,
+      city: nextAddress.city || user.address?.city,
+      state: nextAddress.state || user.address?.state,
+      zipCode: nextAddress.zipCode || user.address?.zipCode,
+      country: nextAddress.country || user.address?.country,
+    };
+  }
+
+  if (req.file) {
+    if (req.file.path) {
+      user.avatar = req.file.path;
+    } else if (req.file.buffer) {
+      const { uploadBuffer } = require('../config/cloudinary');
+      try {
+        const uploadResult = await uploadBuffer(req.file.buffer, 'ecommerce/avatars');
+        if (uploadResult && (uploadResult.secure_url || uploadResult.url)) {
+          user.avatar = uploadResult.secure_url || uploadResult.url;
+        }
+      } catch (err) {
+        console.error('Avatar upload failed:', err);
+      }
+    }
+  }
+
+  const updatedUser = await user.save();
+
+  res.json({
+    success: true,
+    message: 'Profile updated successfully',
+    data: {
+      user: buildSafeUser(updatedUser),
+    },
+  });
 });
 
 // @desc    Change password
@@ -252,35 +267,25 @@ const updateProfile = asyncHandler(async (req, res) => {
 const changePassword = asyncHandler(async (req, res) => {
   const { currentPassword, newPassword } = req.body;
 
-  const user = await User.findById(req.user._id).select('+password');
+  const user = await User.findById(req.user._id).select('+password +refreshToken');
 
   if (!user.password) {
     throw new AppError('Cannot change password for Google-only account', 400);
   }
 
-  // Check current password
   const isMatch = await user.comparePassword(currentPassword);
   if (!isMatch) {
     throw new AppError('Current password is incorrect', 401);
   }
 
-  // Update password
   user.password = newPassword;
-  await user.save();
-
-  // Generate new tokens
-  const accessToken = generateAccessToken(user._id);
-  const refreshToken = generateRefreshToken(user._id);
-
-  user.refreshToken = refreshToken;
-  await user.save();
+  const accessToken = await issueAuthSession(user, res);
 
   res.json({
     success: true,
     message: 'Password changed successfully',
     data: {
       accessToken,
-      refreshToken,
     },
   });
 });
@@ -289,21 +294,17 @@ const changePassword = asyncHandler(async (req, res) => {
 // @route   GET /api/auth/google/callback
 // @access  Public
 const googleCallback = asyncHandler(async (req, res) => {
-  const user = req.user;
+  const user = await User.findById(req.user._id).select('+refreshToken');
 
-  // Generate tokens
-  const accessToken = generateAccessToken(user._id);
-  const refreshToken = generateRefreshToken(user._id);
+  if (!user || !user.isActive) {
+    clearAuthCookies(res);
+    throw new AppError('Your account has been deactivated', 401);
+  }
 
-  // Save refresh token
-  user.refreshToken = refreshToken;
-  await user.save();
+  await issueAuthSession(user, res);
 
-  // Redirect to frontend with tokens
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-  res.redirect(
-    `${frontendUrl}/auth/google/callback?accessToken=${accessToken}&refreshToken=${refreshToken}`
-  );
+  res.redirect(`${frontendUrl}/auth/google/callback?status=success`);
 });
 
 // @desc    Apply to become a shipper
@@ -312,7 +313,6 @@ const googleCallback = asyncHandler(async (req, res) => {
 const applyShipper = asyncHandler(async (req, res) => {
   const { vehicleType, licensePlate, phone, experience, workingHours } = req.body;
 
-  // Validate required fields
   if (!vehicleType || !licensePlate || !phone) {
     throw new AppError('Vehicle type, license plate, and phone are required', 400);
   }
@@ -323,27 +323,22 @@ const applyShipper = asyncHandler(async (req, res) => {
     throw new AppError('User not found', 404);
   }
 
-  // Check if user is already a shipper
   if (user.role === 'shipper') {
     throw new AppError('You are already a delivery partner', 400);
   }
 
-  // Update user with shipper info (pending approval)
   user.shipperInfo = {
     vehicleType,
     licensePlate,
     phone,
     experience: experience || 0,
     workingHours: workingHours || 'full-time',
-    isVerified: false, // Pending admin approval
+    isVerified: false,
     rating: 5,
     totalDeliveries: 0,
     applicationDate: new Date(),
-    status: 'pending', // pending, approved, rejected
+    status: 'pending',
   };
-
-  // Don't change role yet - wait for admin approval
-  // user.role = 'shipper';
 
   await user.save();
 
@@ -351,13 +346,7 @@ const applyShipper = asyncHandler(async (req, res) => {
     success: true,
     message: 'Shipper application submitted successfully. We will review your application within 24-48 hours.',
     data: {
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        shipperInfo: user.shipperInfo,
-      },
+      user: buildSafeUser(user),
     },
   });
 });

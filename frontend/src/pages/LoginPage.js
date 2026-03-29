@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { login, clearError } from '../store/slices/authSlice';
+import { getApiOrigin } from '../services/api';
 import toast from 'react-hot-toast';
 
 const LoginPage = () => {
@@ -30,8 +31,9 @@ const LoginPage = () => {
       toast.error(error);
     }
   }, [error]);
+
   const handleGoogleLogin = () => {
-    window.location.href = 'http://localhost:5000/api/auth/google';
+    window.location.href = `${getApiOrigin()}/api/auth/google`;
   };
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

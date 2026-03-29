@@ -16,8 +16,7 @@ const GoogleCallback = () => {
     if (hasExecuted.current) return;
     hasExecuted.current = true;
 
-    const accessToken = searchParams.get('accessToken');
-    const refreshToken = searchParams.get('refreshToken');
+    const status = searchParams.get('status');
     const error = searchParams.get('error');
 
     if (error) {
@@ -26,10 +25,10 @@ const GoogleCallback = () => {
       return;
     }
 
-    if (accessToken && refreshToken) {
+    if (status === 'success') {
       const handleCallback = async () => {
         try {
-          const result = await dispatch(handleGoogleCallback({ accessToken, refreshToken })).unwrap();
+          const result = await dispatch(handleGoogleCallback()).unwrap();
           toast.success('Login successful!');
           
           // Role-based redirection
@@ -46,9 +45,10 @@ const GoogleCallback = () => {
         }
       };
       handleCallback();
-    } else {
-      navigate('/login');
+      return;
     }
+
+    navigate('/login');
   }, [searchParams, dispatch, navigate]);
 
   return <Loading fullScreen />;

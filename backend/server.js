@@ -1,6 +1,8 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const helmet = require('helmet');
 const passport = require('passport');
 const dotenv = require('dotenv');
 const http = require('http');
@@ -30,6 +32,8 @@ const { initializeSocket } = require('./socket/socketServer');
 
 const app = express();
 const server = http.createServer(app);
+
+app.set('trust proxy', 1);
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
@@ -76,8 +80,10 @@ app.use(
   })
 );
 
+app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use(passport.initialize());
 
 /* =======================
