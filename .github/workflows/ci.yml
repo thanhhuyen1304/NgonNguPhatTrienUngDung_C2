@@ -1,15 +1,6 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - main
-      - master
-    paths-ignore:
-      - 'ShipperMobileApp/**'
-  pull_request:
-    paths-ignore:
-      - 'ShipperMobileApp/**'
   workflow_dispatch:
 
 jobs:
