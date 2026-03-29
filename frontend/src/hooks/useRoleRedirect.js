@@ -7,10 +7,10 @@ const useRoleRedirect = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isAuthenticated } = useSelector((state) => state.auth);
+  const { user, isAuthenticated, initialized } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    if (isAuthenticated && user) {
+    if (initialized && isAuthenticated && user) {
       // Redirect based on role if user is on homepage or login page
       const isOnHomePage = location.pathname === '/';
       const isOnLoginPage = location.pathname === '/login';
@@ -24,12 +24,12 @@ const useRoleRedirect = () => {
         }
       }
     }
-  }, [user, isAuthenticated, navigate, location.pathname]);
+  }, [user, isAuthenticated, initialized, navigate, location.pathname]);
 
   // Listen for user role updates
   useEffect(() => {
     const handleUserRoleUpdate = async () => {
-      if (isAuthenticated) {
+      if (initialized && isAuthenticated) {
         try {
           await dispatch(getMe()).unwrap();
         } catch (error) {
@@ -46,11 +46,11 @@ const useRoleRedirect = () => {
       window.removeEventListener('userDataChanged', handleUserRoleUpdate);
       window.removeEventListener('userRoleUpdated', handleUserRoleUpdate);
     };
-  }, [dispatch, isAuthenticated]);
+  }, [dispatch, initialized, isAuthenticated]);
 
   // Function to refresh user data
   const refreshUserData = async () => {
-    if (isAuthenticated) {
+    if (initialized && isAuthenticated) {
       try {
         await dispatch(getMe()).unwrap();
       } catch (error) {

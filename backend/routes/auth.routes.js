@@ -1,4 +1,5 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const passport = require('passport');
 const router = express.Router();
 
@@ -18,14 +19,26 @@ const { protect } = require('../middleware/auth');
 const { registerValidation, loginValidation } = require('../middleware/validate');
 const { upload } = require('../config/cloudinary');
 
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: 'Too many authentication attempts. Please try again later.',
+  },
+});
+
 // Public routes
-router.post('/register', registerValidation, register);
-router.post('/login', loginValidation, login);
-router.post('/refresh-token', refreshToken);
+router.post('/register', authLimiter, registerValidation, register);
+router.post('/login', authLimiter, loginValidation, login);
+router.post('/refresh-token', authLimiter, refreshToken);
 
 // Google OAuth routes
 router.get(
   '/google',
+  authLimiter,
   passport.authenticate('google', {
     scope: ['profile', 'email'],
     session: false,
@@ -34,6 +47,7 @@ router.get(
 
 router.get(
   '/google/callback',
+  authLimiter,
   passport.authenticate('google', {
     session: false,
     failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=google_auth_failed`,

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { getMe } from './store/slices/authSlice';
+import { bootstrapAuth } from './store/slices/authSlice';
 import { getCart } from './store/slices/cartSlice';
 import { getWishlist } from './store/slices/wishlistSlice';
 import useRoleRedirect from './hooks/useRoleRedirect';
@@ -54,24 +54,21 @@ import RoleChangeNotification from './components/common/RoleChangeNotification';
 
 function App() {
   const dispatch = useDispatch();
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const { isAuthenticated, initialized } = useSelector((state) => state.auth);
   
   // Use role redirect hook
   useRoleRedirect();
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      dispatch(getMe());
-    }
+    dispatch(bootstrapAuth());
   }, [dispatch]);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (initialized && isAuthenticated) {
       dispatch(getCart());
       dispatch(getWishlist());
     }
-  }, [dispatch, isAuthenticated]);
+  }, [dispatch, initialized, isAuthenticated]);
 
   return (
     <>

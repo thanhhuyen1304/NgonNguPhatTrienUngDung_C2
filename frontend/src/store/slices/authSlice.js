@@ -2,28 +2,56 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../services/api';
 import socketService from '../../services/socketService';
 
-// Get user from localStorage
-const user = JSON.parse(localStorage.getItem('user'));
+const safeParseUser = () => {
+  const rawUser = localStorage.getItem('user');
+
+  if (!rawUser) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(rawUser);
+  } catch {
+    localStorage.removeItem('user');
+    return null;
+  }
+};
+
+const getStoredAccessToken = () => localStorage.getItem('accessToken');
+
+const persistSession = ({ user, accessToken }) => {
+  if (user) {
+    localStorage.setItem('user', JSON.stringify(user));
+  }
+
+  if (accessToken) {
+    localStorage.setItem('accessToken', accessToken);
+  }
+};
+
+const clearStoredSession = () => {
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('user');
+};
+
+const storedUser = safeParseUser();
+const storedAccessToken = getStoredAccessToken();
 
 const initialState = {
-  user: user || null,
-  isAuthenticated: !!user,
+  user: storedUser,
+  isAuthenticated: Boolean(storedUser && storedAccessToken),
   loading: false,
+  initialized: false,
   error: null,
 };
 
-// Register user
 export const register = createAsyncThunk(
   'auth/register',
   async (userData, { rejectWithValue }) => {
     try {
       const response = await api.post('/auth/register', userData);
-      const { user, accessToken, refreshToken } = response.data.data;
-      
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
-      localStorage.setItem('user', JSON.stringify(user));
-      
+      const { user, accessToken } = response.data.data;
+      persistSession({ user, accessToken });
       return user;
     } catch (error) {
       return rejectWithValue(
@@ -33,18 +61,13 @@ export const register = createAsyncThunk(
   }
 );
 
-// Login user
 export const login = createAsyncThunk(
   'auth/login',
   async (credentials, { rejectWithValue }) => {
     try {
       const response = await api.post('/auth/login', credentials);
-      const { user, accessToken, refreshToken } = response.data.data;
-      
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
-      localStorage.setItem('user', JSON.stringify(user));
-      
+      const { user, accessToken } = response.data.data;
+      persistSession({ user, accessToken });
       return user;
     } catch (error) {
       return rejectWithValue(
@@ -54,37 +77,34 @@ export const login = createAsyncThunk(
   }
 );
 
-// Logout user
 export const logout = createAsyncThunk(
   'auth/logout',
   async (_, { rejectWithValue }) => {
     try {
       await api.post('/auth/logout');
     } catch (error) {
-      // Continue logout even if API fails
+      return rejectWithValue(
+        error.response?.data?.message || 'Logout failed'
+      );
+    } finally {
+      clearStoredSession();
+      socketService.disconnect();
     }
-    
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-    
+
     return null;
   }
 );
 
-// Get current user
 export const getMe = createAsyncThunk(
   'auth/getMe',
   async (_, { rejectWithValue }) => {
     try {
       const response = await api.get('/auth/me');
       const user = response.data.data.user;
-      localStorage.setItem('user', JSON.stringify(user));
+      persistSession({ user });
       return user;
     } catch (error) {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
+      clearStoredSession();
       return rejectWithValue(
         error.response?.data?.message || 'Failed to get user'
       );
@@ -92,14 +112,28 @@ export const getMe = createAsyncThunk(
   }
 );
 
-// Update profile
+export const bootstrapAuth = createAsyncThunk(
+  'auth/bootstrap',
+  async (_, { dispatch, rejectWithValue }) => {
+    try {
+      const user = await dispatch(getMe()).unwrap();
+      return user;
+    } catch (error) {
+      clearStoredSession();
+      return rejectWithValue(
+        error?.response?.data?.message || error || 'Authentication required'
+      );
+    }
+  }
+);
+
 export const updateProfile = createAsyncThunk(
   'auth/updateProfile',
   async (userData, { rejectWithValue }) => {
     try {
       const response = await api.put('/auth/profile', userData);
       const user = response.data.data.user;
-      localStorage.setItem('user', JSON.stringify(user));
+      persistSession({ user });
       return user;
     } catch (error) {
       return rejectWithValue(
@@ -109,12 +143,17 @@ export const updateProfile = createAsyncThunk(
   }
 );
 
-// Change password
 export const changePassword = createAsyncThunk(
   'auth/changePassword',
   async (passwordData, { rejectWithValue }) => {
     try {
       const response = await api.put('/auth/change-password', passwordData);
+      const accessToken = response.data.data.accessToken;
+
+      if (accessToken) {
+        persistSession({ accessToken });
+      }
+
       return response.data.data;
     } catch (error) {
       return rejectWithValue(
@@ -124,28 +163,24 @@ export const changePassword = createAsyncThunk(
   }
 );
 
-// Handle Google OAuth callback
 export const handleGoogleCallback = createAsyncThunk(
   'auth/googleCallback',
-  async ({ accessToken, refreshToken }, { rejectWithValue }) => {
+  async (_, { dispatch, rejectWithValue }) => {
     try {
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
-      
-      const response = await api.get('/auth/me');
-      const user = response.data.data.user;
-      localStorage.setItem('user', JSON.stringify(user));
-      
+      const user = await dispatch(bootstrapAuth()).unwrap();
       return user;
     } catch (error) {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      return rejectWithValue(
-        error.response?.data?.message || 'Google authentication failed'
-      );
+      clearStoredSession();
+      return rejectWithValue(error || 'Google authentication failed');
     }
   }
 );
+
+const connectSocketIfNeeded = () => {
+  if (!socketService.isSocketConnected()) {
+    socketService.connect();
+  }
+};
 
 const authSlice = createSlice({
   name: 'auth',
@@ -155,81 +190,103 @@ const authSlice = createSlice({
       state.error = null;
     },
     setCredentials: (state, action) => {
-      state.user = action.payload;
-      state.isAuthenticated = true;
+      state.user = action.payload.user;
+      state.isAuthenticated = Boolean(action.payload.user && getStoredAccessToken());
+      state.initialized = true;
+    },
+    clearSessionState: (state) => {
+      state.user = null;
+      state.isAuthenticated = false;
+      state.initialized = true;
+      state.loading = false;
+      state.error = null;
+      clearStoredSession();
+      socketService.disconnect();
     },
   },
   extraReducers: (builder) => {
     builder
-      // Register
       .addCase(register.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(register.fulfilled, (state, action) => {
         state.loading = false;
+        state.initialized = true;
         state.user = action.payload;
         state.isAuthenticated = true;
-        
-        // Connect to Socket.IO
-        const token = localStorage.getItem('accessToken');
-        if (token) {
-          socketService.connect(token);
-        }
+        connectSocketIfNeeded();
       })
       .addCase(register.rejected, (state, action) => {
         state.loading = false;
+        state.initialized = true;
         state.error = action.payload;
+        state.isAuthenticated = false;
       })
-      // Login
       .addCase(login.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(login.fulfilled, (state, action) => {
         state.loading = false;
+        state.initialized = true;
         state.user = action.payload;
         state.isAuthenticated = true;
-        
-        // Connect to Socket.IO
-        const token = localStorage.getItem('accessToken');
-        if (token) {
-          socketService.connect(token);
-        }
+        connectSocketIfNeeded();
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
+        state.initialized = true;
         state.error = action.payload;
+        state.isAuthenticated = false;
       })
-      // Logout
       .addCase(logout.fulfilled, (state) => {
         state.user = null;
         state.isAuthenticated = false;
-        
-        // Disconnect socket
-        socketService.disconnect();
+        state.loading = false;
+        state.initialized = true;
+        state.error = null;
       })
-      // Get Me
+      .addCase(logout.rejected, (state, action) => {
+        state.user = null;
+        state.isAuthenticated = false;
+        state.loading = false;
+        state.initialized = true;
+        state.error = action.payload || null;
+      })
       .addCase(getMe.pending, (state) => {
         state.loading = true;
       })
       .addCase(getMe.fulfilled, (state, action) => {
         state.loading = false;
+        state.initialized = true;
         state.user = action.payload;
         state.isAuthenticated = true;
-        
-        // Connect to Socket.IO if not already connected
-        const token = localStorage.getItem('accessToken');
-        if (token && !socketService.isSocketConnected()) {
-          socketService.connect(token);
-        }
+        connectSocketIfNeeded();
       })
       .addCase(getMe.rejected, (state) => {
         state.loading = false;
         state.user = null;
         state.isAuthenticated = false;
       })
-      // Update Profile
+      .addCase(bootstrapAuth.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(bootstrapAuth.fulfilled, (state, action) => {
+        state.loading = false;
+        state.initialized = true;
+        state.user = action.payload;
+        state.isAuthenticated = true;
+        state.error = null;
+        connectSocketIfNeeded();
+      })
+      .addCase(bootstrapAuth.rejected, (state, action) => {
+        state.loading = false;
+        state.initialized = true;
+        state.user = null;
+        state.isAuthenticated = false;
+        state.error = action.payload || null;
+      })
       .addCase(updateProfile.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -237,12 +294,12 @@ const authSlice = createSlice({
       .addCase(updateProfile.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload;
+        state.initialized = true;
       })
       .addCase(updateProfile.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-      // Change Password
       .addCase(changePassword.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -250,27 +307,32 @@ const authSlice = createSlice({
       .addCase(changePassword.fulfilled, (state) => {
         state.loading = false;
         state.error = null;
+        state.initialized = true;
       })
       .addCase(changePassword.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-      // Google Callback
       .addCase(handleGoogleCallback.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(handleGoogleCallback.fulfilled, (state, action) => {
         state.loading = false;
+        state.initialized = true;
         state.user = action.payload;
         state.isAuthenticated = true;
+        connectSocketIfNeeded();
       })
       .addCase(handleGoogleCallback.rejected, (state, action) => {
         state.loading = false;
+        state.initialized = true;
+        state.user = null;
+        state.isAuthenticated = false;
         state.error = action.payload;
       });
   },
 });
 
-export const { clearError, setCredentials } = authSlice.actions;
+export const { clearError, setCredentials, clearSessionState } = authSlice.actions;
 export default authSlice.reducer;

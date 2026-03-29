@@ -18,13 +18,12 @@ class SocketService {
     }
 
     const serverUrl = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
-    
+
     console.log('🔌 Connecting to Socket.IO server:', serverUrl);
 
     this.socket = io(serverUrl, {
-      auth: {
-        token: token,
-      },
+      auth: token ? { token } : {},
+      withCredentials: true,
       transports: ['websocket', 'polling'],
       timeout: 10000,
       forceNew: true,
