@@ -1,5 +1,8 @@
 const { body, param, query, validationResult } = require('express-validator');
 
+const strongPasswordRule = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d\s])(?=\S+$).{8,}$/;
+const strongPasswordMessage = 'Password must be at least 8 characters and include uppercase, lowercase, number, special character, and no spaces';
+
 // Handle validation result
 const handleValidation = (req, res, next) => {
   const errors = validationResult(req);
@@ -34,10 +37,8 @@ const registerValidation = [
   body('password')
     .notEmpty()
     .withMessage('Password is required')
-    .isLength({ min: 6 })
-    .withMessage('Password must be at least 6 characters')
-    .matches(/\d/)
-    .withMessage('Password must contain at least one number'),
+    .matches(strongPasswordRule)
+    .withMessage(strongPasswordMessage),
   handleValidation,
 ];
 
@@ -49,6 +50,42 @@ const loginValidation = [
     .isEmail()
     .withMessage('Please provide a valid email'),
   body('password').notEmpty().withMessage('Password is required'),
+  handleValidation,
+];
+
+const forgotPasswordValidation = [
+  body('email')
+    .trim()
+    .notEmpty()
+    .withMessage('Email is required')
+    .isEmail()
+    .withMessage('Please provide a valid email')
+    .normalizeEmail(),
+  handleValidation,
+];
+
+const resetPasswordValidation = [
+  param('token')
+    .trim()
+    .notEmpty()
+    .withMessage('Reset token is required'),
+  body('newPassword')
+    .notEmpty()
+    .withMessage('New password is required')
+    .matches(strongPasswordRule)
+    .withMessage(strongPasswordMessage),
+  handleValidation,
+];
+
+const changePasswordValidation = [
+  body('currentPassword')
+    .notEmpty()
+    .withMessage('Current password is required'),
+  body('newPassword')
+    .notEmpty()
+    .withMessage('New password is required')
+    .matches(strongPasswordRule)
+    .withMessage(strongPasswordMessage),
   handleValidation,
 ];
 
@@ -199,6 +236,9 @@ module.exports = {
   handleValidation,
   registerValidation,
   loginValidation,
+  forgotPasswordValidation,
+  resetPasswordValidation,
+  changePasswordValidation,
   productValidation,
   categoryValidation,
   addToCartValidation,

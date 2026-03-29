@@ -6,6 +6,8 @@ const router = express.Router();
 const {
   register,
   login,
+  forgotPassword,
+  resetPassword,
   refreshToken,
   logout,
   getMe,
@@ -16,7 +18,13 @@ const {
 } = require('../controllers/auth.controller');
 
 const { protect } = require('../middleware/auth');
-const { registerValidation, loginValidation } = require('../middleware/validate');
+const {
+  registerValidation,
+  loginValidation,
+  forgotPasswordValidation,
+  resetPasswordValidation,
+  changePasswordValidation,
+} = require('../middleware/validate');
 const { upload } = require('../config/cloudinary');
 
 const authLimiter = rateLimit({
@@ -33,6 +41,8 @@ const authLimiter = rateLimit({
 // Public routes
 router.post('/register', authLimiter, registerValidation, register);
 router.post('/login', authLimiter, loginValidation, login);
+router.post('/forgot-password', authLimiter, forgotPasswordValidation, forgotPassword);
+router.post('/reset-password/:token', authLimiter, resetPasswordValidation, resetPassword);
 router.post('/refresh-token', authLimiter, refreshToken);
 
 // Google OAuth routes
@@ -59,7 +69,7 @@ router.get(
 router.post('/logout', protect, logout);
 router.get('/me', protect, getMe);
 router.put('/profile', protect, upload.single('avatar'), updateProfile);
-router.put('/change-password', protect, changePassword);
+router.put('/change-password', protect, changePasswordValidation, changePassword);
 router.post('/apply-shipper', protect, applyShipper);
 
 module.exports = router;

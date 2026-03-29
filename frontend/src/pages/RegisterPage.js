@@ -4,6 +4,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import { register, clearError } from '../store/slices/authSlice';
 import toast from 'react-hot-toast';
 
+const strongPasswordRule = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d\s])(?=\S+$).{8,}$/;
+const strongPasswordHint = 'Password must be at least 8 characters and include uppercase, lowercase, number, special character, and no spaces';
+
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
     name: '',
@@ -41,8 +44,8 @@ const RegisterPage = () => {
       return;
     }
 
-    if (formData.password.length < 6) {
-      toast.error('Password must be at least 6 characters');
+    if (!strongPasswordRule.test(formData.password)) {
+      toast.error(strongPasswordHint);
       return;
     }
 
@@ -124,7 +127,7 @@ const RegisterPage = () => {
                 </button>
               </div>
               <p className="mt-1 text-xs text-gray-500">
-                Must be at least 6 characters with a number
+                Must be at least 8 characters and include uppercase, lowercase, number, special character, and no spaces
               </p>
             </div>
 

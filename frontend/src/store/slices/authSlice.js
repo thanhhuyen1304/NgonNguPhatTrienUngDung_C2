@@ -42,6 +42,9 @@ const initialState = {
   loading: false,
   initialized: false,
   error: null,
+  forgotPasswordStatus: null,
+  forgotPasswordPreviewUrl: null,
+  forgotPasswordMessage: null,
 };
 
 export const register = createAsyncThunk(
@@ -161,6 +164,36 @@ export const changePassword = createAsyncThunk(
   }
 );
 
+export const forgotPassword = createAsyncThunk(
+  'auth/forgotPassword',
+  async (email, { rejectWithValue }) => {
+    try {
+      const response = await api.post('/auth/forgot-password', { email });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to request password reset'
+      );
+    }
+  }
+);
+
+export const resetPassword = createAsyncThunk(
+  'auth/resetPassword',
+  async ({ token, newPassword }, { rejectWithValue }) => {
+    try {
+      const response = await api.post(`/auth/reset-password/${token}`, { newPassword });
+      const { user, accessToken } = response.data.data;
+      persistSession({ user, accessToken });
+      return user;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to reset password'
+      );
+    }
+  }
+);
+
 export const hasStoredSessionHint = () => {
   return Boolean(safeParseUser() || getStoredAccessToken());
 };
@@ -171,6 +204,11 @@ const authSlice = createSlice({
   reducers: {
     clearError: (state) => {
       state.error = null;
+    },
+    clearForgotPasswordState: (state) => {
+      state.forgotPasswordStatus = null;
+      state.forgotPasswordPreviewUrl = null;
+      state.forgotPasswordMessage = null;
     },
     setCredentials: (state, action) => {
       state.user = action.payload.user;
@@ -184,6 +222,9 @@ const authSlice = createSlice({
       state.loading = false;
       state.error = null;
       clearStoredSession();
+      state.forgotPasswordStatus = null;
+      state.forgotPasswordPreviewUrl = null;
+      state.forgotPasswordMessage = null;
     },
   },
   extraReducers: (builder) => {
@@ -291,9 +332,42 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+      .addCase(forgotPassword.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.forgotPasswordStatus = null;
+      })
+      .addCase(forgotPassword.fulfilled, (state, action) => {
+        state.loading = false;
+        state.forgotPasswordStatus = 'success';
+        state.forgotPasswordPreviewUrl = action.payload.data?.previewResetUrl || null;
+        state.forgotPasswordMessage = action.payload.message || null;
+      })
+      .addCase(forgotPassword.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        state.forgotPasswordStatus = 'error';
+      })
+      .addCase(resetPassword.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(resetPassword.fulfilled, (state, action) => {
+        state.loading = false;
+        state.initialized = true;
+        state.user = action.payload;
+        state.isAuthenticated = true;
+        state.forgotPasswordStatus = null;
+        state.forgotPasswordPreviewUrl = null;
+        state.forgotPasswordMessage = null;
+      })
+      .addCase(resetPassword.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
       ;
   },
 });
 
-export const { clearError, setCredentials, clearSessionState } = authSlice.actions;
+export const { clearError, clearForgotPasswordState, setCredentials, clearSessionState } = authSlice.actions;
 export default authSlice.reducer;

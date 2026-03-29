@@ -27,6 +27,8 @@ const NON_REFRESHABLE_PATHS = [
   '/auth/register',
   '/auth/google',
   '/auth/google/callback',
+  '/auth/forgot-password',
+  '/auth/reset-password',
   '/auth/refresh-token',
 ];
 
