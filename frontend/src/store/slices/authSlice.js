@@ -1,6 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../services/api';
-import socketService from '../../services/socketService';
 
 const safeParseUser = () => {
   const rawUser = localStorage.getItem('user');
@@ -88,7 +87,6 @@ export const logout = createAsyncThunk(
       );
     } finally {
       clearStoredSession();
-      socketService.disconnect();
     }
 
     return null;
@@ -163,23 +161,8 @@ export const changePassword = createAsyncThunk(
   }
 );
 
-export const handleGoogleCallback = createAsyncThunk(
-  'auth/googleCallback',
-  async (_, { dispatch, rejectWithValue }) => {
-    try {
-      const user = await dispatch(bootstrapAuth()).unwrap();
-      return user;
-    } catch (error) {
-      clearStoredSession();
-      return rejectWithValue(error || 'Google authentication failed');
-    }
-  }
-);
-
-const connectSocketIfNeeded = () => {
-  if (!socketService.isSocketConnected()) {
-    socketService.connect();
-  }
+export const hasStoredSessionHint = () => {
+  return Boolean(safeParseUser() || getStoredAccessToken());
 };
 
 const authSlice = createSlice({
@@ -201,7 +184,6 @@ const authSlice = createSlice({
       state.loading = false;
       state.error = null;
       clearStoredSession();
-      socketService.disconnect();
     },
   },
   extraReducers: (builder) => {
@@ -215,7 +197,6 @@ const authSlice = createSlice({
         state.initialized = true;
         state.user = action.payload;
         state.isAuthenticated = true;
-        connectSocketIfNeeded();
       })
       .addCase(register.rejected, (state, action) => {
         state.loading = false;
@@ -232,7 +213,6 @@ const authSlice = createSlice({
         state.initialized = true;
         state.user = action.payload;
         state.isAuthenticated = true;
-        connectSocketIfNeeded();
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
@@ -262,7 +242,6 @@ const authSlice = createSlice({
         state.initialized = true;
         state.user = action.payload;
         state.isAuthenticated = true;
-        connectSocketIfNeeded();
       })
       .addCase(getMe.rejected, (state) => {
         state.loading = false;
@@ -278,7 +257,6 @@ const authSlice = createSlice({
         state.user = action.payload;
         state.isAuthenticated = true;
         state.error = null;
-        connectSocketIfNeeded();
       })
       .addCase(bootstrapAuth.rejected, (state, action) => {
         state.loading = false;
@@ -313,24 +291,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-      .addCase(handleGoogleCallback.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(handleGoogleCallback.fulfilled, (state, action) => {
-        state.loading = false;
-        state.initialized = true;
-        state.user = action.payload;
-        state.isAuthenticated = true;
-        connectSocketIfNeeded();
-      })
-      .addCase(handleGoogleCallback.rejected, (state, action) => {
-        state.loading = false;
-        state.initialized = true;
-        state.user = null;
-        state.isAuthenticated = false;
-        state.error = action.payload;
-      });
+      ;
   },
 });
 

@@ -92,10 +92,27 @@ const initializeSocket = (server) => {
 
   // Handle socket connections
   io.on('connection', (socket) => {
+    const userRoom = `user_${socket.userId}`;
+
+    io.in(userRoom).fetchSockets()
+      .then((existingSockets) => {
+        existingSockets.forEach((existingSocket) => {
+          if (existingSocket.id !== socket.id) {
+            console.log(
+              `♻️ Disconnecting stale socket for ${socket.userName} (${socket.userRole}) - Old Socket ID: ${existingSocket.id}`
+            );
+            existingSocket.disconnect(true);
+          }
+        });
+      })
+      .catch((error) => {
+        console.error('Socket cleanup error:', error.message);
+      });
+
     console.log(`✅ Socket connected: ${socket.userName} (${socket.userRole})`);
 
     // Join user to their personal room for targeted notifications
-    socket.join(`user_${socket.userId}`);
+    socket.join(userRoom);
     
     // Join role-based rooms
     socket.join(`role_${socket.userRole}`);
@@ -123,8 +140,10 @@ const initializeSocket = (server) => {
     });
 
     // Handle disconnect
-    socket.on('disconnect', () => {
-      console.log(`❌ Socket disconnected: ${socket.userName} (${socket.userRole})`);
+    socket.on('disconnect', (reason) => {
+      console.log(
+        `❌ Socket disconnected: ${socket.userName} (${socket.userRole}) - Socket ID: ${socket.id} - Reason: ${reason}`
+      );
     });
 
     // Send welcome message

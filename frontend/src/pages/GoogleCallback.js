@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { handleGoogleCallback } from '../store/slices/authSlice';
+import { bootstrapAuth } from '../store/slices/authSlice';
 import Loading from '../components/common/Loading';
 import toast from 'react-hot-toast';
 
@@ -28,7 +28,7 @@ const GoogleCallback = () => {
     if (status === 'success') {
       const handleCallback = async () => {
         try {
-          const result = await dispatch(handleGoogleCallback()).unwrap();
+          const result = await dispatch(bootstrapAuth()).unwrap();
           toast.success('Login successful!');
           
           // Role-based redirection

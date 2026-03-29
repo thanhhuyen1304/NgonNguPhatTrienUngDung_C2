@@ -5,6 +5,7 @@ class SocketService {
   constructor() {
     this.socket = null;
     this.isConnected = false;
+    this.isConnecting = false;
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.listeners = new Map();
@@ -12,8 +13,14 @@ class SocketService {
 
   // Initialize socket connection
   connect(token) {
-    if (this.socket?.connected) {
-      console.log('Socket already connected');
+    if (this.socket) {
+      if (this.socket.connected || this.isConnecting) {
+        console.log('Socket connection already active or in progress');
+        return;
+      }
+
+      this.isConnecting = true;
+      this.socket.connect();
       return;
     }
 
@@ -21,12 +28,13 @@ class SocketService {
 
     console.log('🔌 Connecting to Socket.IO server:', serverUrl);
 
+    this.isConnecting = true;
+
     this.socket = io(serverUrl, {
       auth: token ? { token } : {},
       withCredentials: true,
       transports: ['websocket', 'polling'],
       timeout: 10000,
-      forceNew: true,
     });
 
     this.setupEventListeners();
@@ -39,6 +47,7 @@ class SocketService {
     this.socket.on('connect', () => {
       console.log('✅ Socket connected:', this.socket.id);
       this.isConnected = true;
+      this.isConnecting = false;
       this.reconnectAttempts = 0;
       
       // Show connection success (only after reconnection)
@@ -54,6 +63,7 @@ class SocketService {
     this.socket.on('disconnect', (reason) => {
       console.log('❌ Socket disconnected:', reason);
       this.isConnected = false;
+      this.isConnecting = false;
       
       if (reason === 'io server disconnect') {
         // Server disconnected, try to reconnect
@@ -64,6 +74,7 @@ class SocketService {
     this.socket.on('connect_error', (error) => {
       console.error('🔥 Socket connection error:', error.message);
       this.isConnected = false;
+      this.isConnecting = false;
       this.reconnectAttempts++;
       
       if (this.reconnectAttempts <= this.maxReconnectAttempts) {
@@ -165,6 +176,7 @@ class SocketService {
       this.socket.disconnect();
       this.socket = null;
       this.isConnected = false;
+      this.isConnecting = false;
       this.listeners.clear();
     }
   }

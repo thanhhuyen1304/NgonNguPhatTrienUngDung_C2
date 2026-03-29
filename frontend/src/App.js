@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { bootstrapAuth } from './store/slices/authSlice';
+import { bootstrapAuth, clearSessionState, hasStoredSessionHint } from './store/slices/authSlice';
+import socketService from './services/socketService';
 import { getCart } from './store/slices/cartSlice';
 import { getWishlist } from './store/slices/wishlistSlice';
 import useRoleRedirect from './hooks/useRoleRedirect';
@@ -54,14 +55,37 @@ import RoleChangeNotification from './components/common/RoleChangeNotification';
 
 function App() {
   const dispatch = useDispatch();
+  const location = useLocation();
   const { isAuthenticated, initialized } = useSelector((state) => state.auth);
   
   // Use role redirect hook
   useRoleRedirect();
 
   useEffect(() => {
-    dispatch(bootstrapAuth());
-  }, [dispatch]);
+    const isGoogleCallbackRoute = location.pathname === '/auth/google/callback';
+
+    if (!isGoogleCallbackRoute && hasStoredSessionHint()) {
+      dispatch(bootstrapAuth());
+      return;
+    }
+
+    if (!isGoogleCallbackRoute) {
+      dispatch(clearSessionState());
+    }
+  }, [dispatch, location.pathname]);
+
+  useEffect(() => {
+    if (!initialized) {
+      return;
+    }
+
+    if (isAuthenticated) {
+      socketService.connect();
+      return;
+    }
+
+    socketService.disconnect();
+  }, [initialized, isAuthenticated]);
 
   useEffect(() => {
     if (initialized && isAuthenticated) {
