@@ -29,12 +29,27 @@ const refreshCookieOptions = {
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
+const passwordResetExpiresMinutes = Number(process.env.PASSWORD_RESET_EXPIRE_MINUTES || 15);
+
+const allowInternalPasswordResetPreview = (() => {
+  if (process.env.ALLOW_INTERNAL_PASSWORD_RESET_PREVIEW === 'true') {
+    return true;
+  }
+
+  if (process.env.ALLOW_INTERNAL_PASSWORD_RESET_PREVIEW === 'false') {
+    return false;
+  }
+
+  return !isProduction;
+})();
+
 const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
 const buildSafeUser = (user) => ({
   _id: user._id,
   name: user.name,
   email: user.email,
+  googleId: user.googleId,
   role: user.role,
   avatar: user.avatar,
   phone: user.phone,
@@ -59,6 +74,11 @@ const issueAuthSession = async (user, res) => {
   res.cookie(REFRESH_COOKIE_NAME, refreshToken, refreshCookieOptions);
 
   return accessToken;
+};
+
+const buildResetPasswordUrl = (token) => {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  return `${frontendUrl}/reset-password/${token}`;
 };
 
 // @desc    Register new user
@@ -121,6 +141,66 @@ const login = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     message: 'Login successful',
+    data: {
+      user: buildSafeUser(user),
+      accessToken,
+    },
+  });
+});
+
+const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  const user = await User.findOne({ email: email.toLowerCase() }).select('+password +passwordResetToken +passwordResetExpires');
+
+  let previewResetUrl = null;
+
+  if (user && user.isActive && user.password) {
+    const rawResetToken = crypto.randomBytes(32).toString('hex');
+    user.passwordResetToken = hashToken(rawResetToken);
+    user.passwordResetExpires = new Date(Date.now() + passwordResetExpiresMinutes * 60 * 1000);
+    await user.save();
+
+    if (allowInternalPasswordResetPreview) {
+      previewResetUrl = buildResetPasswordUrl(rawResetToken);
+    }
+  }
+
+  res.json({
+    success: true,
+    message: 'If that email exists, a password reset link is ready.',
+    data: {
+      previewResetUrl,
+      expiresInMinutes: allowInternalPasswordResetPreview && previewResetUrl ? passwordResetExpiresMinutes : undefined,
+    },
+  });
+});
+
+const resetPassword = asyncHandler(async (req, res) => {
+  const { token } = req.params;
+  const { newPassword } = req.body;
+
+  const user = await User.findOne({
+    passwordResetToken: hashToken(token),
+    passwordResetExpires: { $gt: new Date() },
+  }).select('+password +refreshToken +passwordResetToken +passwordResetExpires');
+
+  if (!user) {
+    throw new AppError('Reset token is invalid or has expired', 400);
+  }
+
+  if (!user.isActive) {
+    throw new AppError('Your account has been deactivated', 401);
+  }
+
+  user.password = newPassword;
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+
+  const accessToken = await issueAuthSession(user, res);
+
+  res.json({
+    success: true,
+    message: 'Password reset successful',
     data: {
       user: buildSafeUser(user),
       accessToken,
@@ -358,6 +438,8 @@ const applyShipper = asyncHandler(async (req, res) => {
 module.exports = {
   register,
   login,
+  forgotPassword,
+  resetPassword,
   refreshToken,
   logout,
   getMe,

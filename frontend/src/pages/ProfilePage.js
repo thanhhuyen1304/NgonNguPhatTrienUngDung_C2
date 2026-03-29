@@ -5,6 +5,9 @@ import toast from 'react-hot-toast';
 import { UserCircleIcon, CameraIcon, TruckIcon } from '@heroicons/react/24/outline';
 import api from '../services/api';
 
+const strongPasswordRule = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d\s])(?=\S+$).{8,}$/;
+const strongPasswordHint = 'Mật khẩu phải có ít nhất 8 ký tự, gồm chữ hoa, chữ thường, số, ký tự đặc biệt và không có dấu cách';
+
 const ProfilePage = () => {
   const dispatch = useDispatch();
   const { user, loading } = useSelector((state) => state.auth);
@@ -162,8 +165,8 @@ const ProfilePage = () => {
       return;
     }
 
-    if (passwordData.newPassword.length < 6) {
-      toast.error('Mật khẩu mới phải có ít nhất 6 ký tự');
+    if (!strongPasswordRule.test(passwordData.newPassword)) {
+      toast.error(strongPasswordHint);
       return;
     }
 
@@ -469,6 +472,9 @@ const ProfilePage = () => {
                       required
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Ít nhất 8 ký tự, gồm chữ hoa, chữ thường, số, ký tự đặc biệt và không có dấu cách.
+                    </p>
                   </div>
 
                   <div>
