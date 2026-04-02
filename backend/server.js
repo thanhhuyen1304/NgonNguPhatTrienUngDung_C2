@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const passport = require('passport');
 const dotenv = require('dotenv');
 const http = require('http');
+const path = require('path');
 
 // Load environment variables
 dotenv.config();
@@ -20,6 +21,7 @@ const orderRoutes = require('./routes/order.routes');
 const uploadRoutes = require('./routes/upload.routes');
 const wishlistRoutes = require('./routes/wishlist.routes');
 const shipperRoutes = require('./routes/shipper.routes');
+const supportRoutes = require('./routes/support.routes');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -85,6 +87,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(passport.initialize());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 /* =======================
    MongoDB Atlas Connection
@@ -135,6 +138,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/shipper', shipperRoutes);
+app.use('/api/support', supportRoutes);
 
 /* =======================
    Health Check

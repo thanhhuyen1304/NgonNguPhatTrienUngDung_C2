@@ -21,6 +21,8 @@ if (process.env.CLOUDINARY_CLOUD_NAME) {
       let folder = 'ecommerce/products';
       if (file.fieldname === 'avatar' || req.path.includes('/auth/')) {
         folder = 'ecommerce/avatars';
+      } else if (req.path.includes('/support/')) {
+        folder = 'ecommerce/support';
       }
       
       return {
