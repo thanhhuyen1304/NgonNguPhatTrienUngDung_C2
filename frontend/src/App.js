@@ -39,7 +39,6 @@ import AdminProductForm from './pages/admin/ProductForm';
 import AdminCategories from './pages/admin/Categories';
 import AdminOrders from './pages/admin/Orders';
 import AdminUsers from './pages/admin/Users';
-import AdminShipperApplications from './pages/admin/ShipperApplications';
 
 // Shipper Pages
 import ShipperDashboard from './pages/shipper/Dashboard';
@@ -138,7 +137,6 @@ function App() {
             <Route path="categories" element={<AdminCategories />} />
             <Route path="orders" element={<AdminOrders />} />
             <Route path="users" element={<AdminUsers />} />
-            <Route path="shipper-applications" element={<AdminShipperApplications />} />
           </Route>
         </Route>
 

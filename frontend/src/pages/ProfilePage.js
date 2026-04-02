@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateProfile, changePassword, setCredentials, getMe } from '../store/slices/authSlice';
 import toast from 'react-hot-toast';
-import { UserCircleIcon, CameraIcon, TruckIcon } from '@heroicons/react/24/outline';
-import api from '../services/api';
+import { UserCircleIcon, CameraIcon } from '@heroicons/react/24/outline';
 
 const strongPasswordRule = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d\s])(?=\S+$).{8,}$/;
 const strongPasswordHint = 'Mật khẩu phải có ít nhất 8 ký tự, gồm chữ hoa, chữ thường, số, ký tự đặc biệt và không có dấu cách';
@@ -31,15 +30,6 @@ const ProfilePage = () => {
     newPassword: '',
     confirmPassword: '',
   });
-
-  const [shipperApplication, setShipperApplication] = useState({
-    vehicleType: '',
-    licensePlate: '',
-    drivingLicense: '',
-    experience: '',
-  });
-
-  const [showShipperForm, setShowShipperForm] = useState(false);
 
   const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
@@ -112,10 +102,6 @@ const ProfilePage = () => {
     setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
   };
 
-  const handleShipperApplicationChange = (e) => {
-    setShipperApplication({ ...shipperApplication, [e.target.name]: e.target.value });
-  };
-
   const handleSubmitProfile = async (e) => {
     e.preventDefault();
     
@@ -185,24 +171,6 @@ const ProfilePage = () => {
       setChangePassMode(false);
     } catch (error) {
       toast.error(error || 'Lỗi thay đổi mật khẩu');
-    }
-  };
-
-  const handleSubmitShipperApplication = async (e) => {
-    e.preventDefault();
-    
-    try {
-      await api.post('/users/shipper-applications', shipperApplication);
-      toast.success('Đơn đăng ký đã được gửi thành công! Chúng tôi sẽ xem xét và phản hồi sớm nhất.');
-      setShowShipperForm(false);
-      setShipperApplication({
-        vehicleType: '',
-        licensePlate: '',
-        drivingLicense: '',
-        experience: '',
-      });
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi gửi đơn đăng ký');
     }
   };
 
@@ -537,128 +505,6 @@ const ProfilePage = () => {
             </div>
           </div>
 
-          {/* Shipper Application */}
-          {user?.role === 'user' && (
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 flex items-center">
-                    <TruckIcon className="w-6 h-6 mr-2 text-blue-600" />
-                    Trở thành đối tác giao hàng
-                  </h3>
-                  <p className="text-gray-600 text-sm mt-1">
-                    Đăng ký để trở thành shipper và bắt đầu kiếm thu nhập
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowShipperForm(!showShipperForm)}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
-                >
-                  {showShipperForm ? 'Hủy' : 'Đăng ký ngay'}
-                </button>
-              </div>
-
-              {showShipperForm ? (
-                <form onSubmit={handleSubmitShipperApplication} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Loại phương tiện *
-                    </label>
-                    <select
-                      name="vehicleType"
-                      value={shipperApplication.vehicleType}
-                      onChange={handleShipperApplicationChange}
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">Chọn loại phương tiện</option>
-                      <option value="motorbike">Xe máy</option>
-                      <option value="car">Ô tô</option>
-                      <option value="truck">Xe tải nhỏ</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Biển số xe *
-                    </label>
-                    <input
-                      type="text"
-                      name="licensePlate"
-                      value={shipperApplication.licensePlate}
-                      onChange={handleShipperApplicationChange}
-                      required
-                      placeholder="VD: 30A-12345"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Số giấy phép lái xe *
-                    </label>
-                    <input
-                      type="text"
-                      name="drivingLicense"
-                      value={shipperApplication.drivingLicense}
-                      onChange={handleShipperApplicationChange}
-                      required
-                      placeholder="Nhập số giấy phép lái xe"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Số năm kinh nghiệm giao hàng
-                    </label>
-                    <select
-                      name="experience"
-                      value={shipperApplication.experience}
-                      onChange={handleShipperApplicationChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">Chọn số năm kinh nghiệm</option>
-                      <option value="0">Chưa có kinh nghiệm</option>
-                      <option value="1">1 năm</option>
-                      <option value="2">2 năm</option>
-                      <option value="3">3 năm</option>
-                      <option value="4">4 năm</option>
-                      <option value="5">5+ năm</option>
-                    </select>
-                  </div>
-
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h4 className="font-semibold text-blue-900 mb-2">Lợi ích khi trở thành đối tác:</h4>
-                    <ul className="text-sm text-blue-800 space-y-1">
-                      <li>• Thu nhập linh hoạt theo thời gian làm việc</li>
-                      <li>• Nhận đơn hàng phù hợp với khu vực của bạn</li>
-                      <li>• Hỗ trợ 24/7 từ đội ngũ chăm sóc khách hàng</li>
-                      <li>• Thanh toán nhanh chóng và minh bạch</li>
-                    </ul>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:bg-blue-400"
-                  >
-                    {loading ? 'Đang gửi...' : 'Gửi đơn đăng ký'}
-                  </button>
-                </form>
-              ) : (
-                <div className="text-center py-8">
-                  <TruckIcon className="w-16 h-16 mx-auto text-blue-600 mb-4" />
-                  <p className="text-gray-600 mb-4">
-                    Bạn muốn kiếm thêm thu nhập bằng cách giao hàng?
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Đăng ký trở thành đối tác giao hàng để bắt đầu nhận đơn hàng trong khu vực của bạn.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
     </div>
