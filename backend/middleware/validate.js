@@ -232,6 +232,25 @@ const paginationValidation = [
   handleValidation,
 ];
 
+const supportMessageValidation = [
+  body('text')
+    .optional()
+    .isString()
+    .withMessage('Message text must be a string')
+    .isLength({ max: 2000 })
+    .withMessage('Message text cannot exceed 2000 characters'),
+  handleValidation,
+];
+
+const supportConversationStatusValidation = [
+  body('status')
+    .notEmpty()
+    .withMessage('Status is required')
+    .isIn(['open', 'closed'])
+    .withMessage('Invalid support conversation status'),
+  handleValidation,
+];
+
 module.exports = {
   handleValidation,
   registerValidation,
@@ -247,4 +266,6 @@ module.exports = {
   updateOrderStatusValidation,
   mongoIdValidation,
   paginationValidation,
+  supportMessageValidation,
+  supportConversationStatusValidation,
 };

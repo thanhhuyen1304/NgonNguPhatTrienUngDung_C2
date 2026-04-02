@@ -50,6 +50,14 @@ const Header = () => {
     setUserDropdown(false);
   };
 
+  const handleOpenSupportChat = () => {
+    window.dispatchEvent(new Event('open-support-chat'));
+    setUserDropdown(false);
+    setMobileMenuOpen(false);
+  };
+
+  const showSupportChat = isAuthenticated && user?.role === 'user';
+
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -188,6 +196,15 @@ const Header = () => {
                     >
                       {t('nav.orders')}
                     </Link>
+                    {showSupportChat && (
+                      <button
+                        type="button"
+                        className="block w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100"
+                        onClick={handleOpenSupportChat}
+                      >
+                        Hỗ trợ
+                      </button>
+                    )}
                     {user?.role === 'admin' && (
                       <Link
                         to="/admin"
@@ -293,6 +310,15 @@ const Header = () => {
               >
                 {t('nav.wishlist') || 'Wishlist'}
               </Link>
+              {showSupportChat && (
+                <button
+                  type="button"
+                  className="block py-2 text-left text-gray-700 hover:text-blue-600"
+                  onClick={handleOpenSupportChat}
+                >
+                  Hỗ trợ
+                </button>
+              )}
             </div>
           </div>
         )}

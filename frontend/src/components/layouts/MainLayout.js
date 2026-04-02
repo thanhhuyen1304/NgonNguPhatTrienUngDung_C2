@@ -2,6 +2,7 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Header from '../common/Header';
 import Footer from '../common/Footer';
+import SupportWidget from '../support/SupportWidget';
 
 const MainLayout = () => {
   return (
@@ -11,6 +12,7 @@ const MainLayout = () => {
         <Outlet />
       </main>
       <Footer />
+      <SupportWidget />
     </div>
   );
 };

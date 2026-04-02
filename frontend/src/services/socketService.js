@@ -49,6 +49,7 @@ class SocketService {
       this.isConnected = true;
       this.isConnecting = false;
       this.reconnectAttempts = 0;
+      this.emit('socket_connected', { socketId: this.socket.id });
       
       // Show connection success (only after reconnection)
       if (this.reconnectAttempts > 0) {
@@ -64,6 +65,7 @@ class SocketService {
       console.log('❌ Socket disconnected:', reason);
       this.isConnected = false;
       this.isConnecting = false;
+      this.emit('socket_disconnected', { reason });
       
       if (reason === 'io server disconnect') {
         // Server disconnected, try to reconnect
@@ -122,6 +124,17 @@ class SocketService {
       console.log('👤 Order assigned:', data);
       toast.success(`Đơn hàng ${data.orderNumber} đã được giao cho shipper`);
       this.emit('order_assigned', data);
+    });
+
+    this.socket.onAny((event, data) => {
+      if (event.startsWith('support_') || event.startsWith('support:')) {
+        const normalizedEvent = event.replace(/[:]/g, '_');
+        this.emit(event, data);
+
+        if (normalizedEvent !== event) {
+          this.emit(normalizedEvent, data);
+        }
+      }
     });
   }
 
