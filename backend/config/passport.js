@@ -1,12 +1,9 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const User = require('../schemas/User');
+const User = require('../models/User');
 
-const hasGoogleAuth = Boolean(
-  process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
-);
-
-if (hasGoogleAuth) {
+// Only configure Google OAuth if credentials exist
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   passport.use(
     new GoogleStrategy(
       {
@@ -22,6 +19,7 @@ if (hasGoogleAuth) {
             return done(new Error('Google account did not return a valid email'), null);
           }
 
+          // Check if user already exists
           let user = await User.findOne({ googleId: profile.id });
 
           if (user) {
@@ -32,6 +30,7 @@ if (hasGoogleAuth) {
             return done(null, user);
           }
 
+          // Check if user exists with same email
           user = await User.findOne({ email: primaryEmail });
 
           if (user) {
@@ -39,6 +38,7 @@ if (hasGoogleAuth) {
               return done(new Error('Your account has been deactivated'), null);
             }
 
+            // Link Google account to existing user
             user.googleId = profile.id;
             if (!user.avatar && profile.photos[0]) {
               user.avatar = profile.photos[0].value;
@@ -48,6 +48,7 @@ if (hasGoogleAuth) {
             return done(null, user);
           }
 
+          // Create new user
           user = await User.create({
             name: profile.displayName,
             email: primaryEmail,

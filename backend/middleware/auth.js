@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
-const User = require('../schemas/User');
+const User = require('../models/User');
 
 const getAccessTokenFromRequest = (req) => {
   if (req.cookies?.accessToken) {
