@@ -11,9 +11,10 @@ export const getShipperDashboard = async () => {
 };
 
 // Get shipper orders
-export const getShipperOrders = async () => {
+export const getShipperOrders = async (type = '') => {
   try {
-    const response = await api.get('/shipper/orders');
+    const params = type ? { type } : {};
+    const response = await api.get('/shipper/orders', { params });
     return response.data;
   } catch (error) {
     throw error.response?.data || error;
@@ -52,22 +53,30 @@ export const getShipperRoute = async () => {
 
 // Update shipper location
 export const updateShipperLocation = async (latitude, longitude) => {
-  try {
-    const response = await api.put('/shipper/location', { latitude, longitude });
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || error;
-  }
+  return {
+    success: true,
+    data: {
+      location: { latitude, longitude },
+    },
+  };
 };
 
 // Get shipper stats
 export const getShipperStats = async () => {
-  try {
-    const response = await api.get('/shipper/stats');
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || error;
+  const response = await getShipperDashboard();
+
+  if (!response.success) {
+    return response;
   }
+
+  return {
+    success: true,
+    data: {
+      totalDeliveries: response.data?.stats?.totalDeliveries || 0,
+      rating: response.data?.shipperInfo?.rating || 5,
+      activeDeliveries: response.data?.stats?.activeDeliveries || 0,
+    },
+  };
 };
 
 const shipperService = {

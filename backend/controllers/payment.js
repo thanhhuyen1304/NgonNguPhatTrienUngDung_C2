@@ -50,13 +50,97 @@ const callMomoAPI = (data) => {
   });
 };
 
+const finalizeMomoPayment = async ({ order, resultCode, transactionId, momoOrderId, actor }) => {
+  if (String(resultCode) !== '0') {
+    if (order.paymentStatus === 'pending') {
+      order.paymentStatus = 'failed';
+      order.paymentDetails = {
+        ...order.paymentDetails,
+        momoOrderId: order.paymentDetails?.momoOrderId || momoOrderId || null,
+        lastResultCode: String(resultCode),
+        ...(actor === 'ipn' ? { lastWebhookAt: new Date() } : { lastVerifiedAt: new Date() }),
+      };
+      await order.save();
+    }
+
+    return order;
+  }
+
+  if (order.paymentStatus === 'paid' && order.stockCommitted) {
+    order.paymentDetails = {
+      ...order.paymentDetails,
+      momoOrderId: order.paymentDetails?.momoOrderId || momoOrderId || null,
+      transactionId: transactionId || order.paymentDetails?.transactionId || null,
+      lastResultCode: '0',
+      ...(actor === 'ipn' ? { lastWebhookAt: new Date() } : { lastVerifiedAt: new Date() }),
+    };
+    await order.save();
+    return order;
+  }
+
+  const session = await Order.startSession();
+
+  try {
+    await session.withTransaction(async () => {
+      const lockedOrder = await Order.findById(order._id).session(session);
+
+      if (!lockedOrder) {
+        throw new Error('Order not found');
+      }
+
+      if (lockedOrder.paymentStatus === 'paid' && lockedOrder.stockCommitted) {
+        return;
+      }
+
+      for (const item of lockedOrder.items) {
+        const stockResult = await Product.updateOne(
+          {
+            _id: item.product,
+            stock: { $gte: item.quantity },
+          },
+          {
+            $inc: { stock: -item.quantity, sold: item.quantity },
+          },
+          { session }
+        );
+
+        if (!stockResult.modifiedCount) {
+          throw new Error(`Not enough stock for ${item.name}`);
+        }
+      }
+
+      lockedOrder.paymentStatus = 'paid';
+      lockedOrder.stockCommitted = true;
+      lockedOrder.paymentDetails = {
+        ...lockedOrder.paymentDetails,
+        momoOrderId: lockedOrder.paymentDetails?.momoOrderId || momoOrderId || null,
+        transactionId: transactionId || lockedOrder.paymentDetails?.transactionId || null,
+        paidAt: new Date(),
+        lastResultCode: '0',
+        ...(actor === 'ipn' ? { lastWebhookAt: new Date() } : { lastVerifiedAt: new Date() }),
+      };
+
+      await lockedOrder.save({ session });
+      await Cart.findOneAndUpdate(
+        { user: lockedOrder.user },
+        { items: [], totalItems: 0, totalPrice: 0 },
+        { session }
+      );
+    });
+  } finally {
+    await session.endSession();
+  }
+
+  return Order.findById(order._id);
+};
+
 /* ============================================================
    @desc    Tạo order + payment link MoMo
    @route   POST /api/payment/momo/create
    @access  Private
 ============================================================ */
 const createMomoPayment = asyncHandler(async (req, res) => {
-  const { shippingAddress, paymentMethod, note } = req.body;
+  const { shippingAddress, paymentMethod, note, checkoutRequestKey } = req.body;
 
   if (paymentMethod !== 'momo') {
     res.status(400);
@@ -72,6 +156,24 @@ const createMomoPayment = asyncHandler(async (req, res) => {
   if (!cart || cart.items.length === 0) {
     res.status(400);
     throw new Error('Cart is empty');
+  }
+
+  if (checkoutRequestKey) {
+    const existingOrder = await Order.findOne({
+      user: req.user._id,
+      checkoutRequestKey,
+    });
+
+    if (existingOrder && existingOrder.paymentMethod === 'momo') {
+      return res.status(200).json({
+        success: true,
+        data: {
+          payUrl: null,
+          orderId: existingOrder._id,
+          momoOrderId: existingOrder.paymentDetails?.momoOrderId || null,
+        },
+      });
+    }
   }
 
   // ── 2. Validate sản phẩm & stock ───────────────────────────
@@ -109,6 +211,7 @@ const createMomoPayment = asyncHandler(async (req, res) => {
     },
     paymentMethod: 'momo',
     paymentStatus: 'pending',
+    checkoutRequestKey: checkoutRequestKey || null,
     note,
   });
   order.calculatePrices();
@@ -127,6 +230,11 @@ const createMomoPayment = asyncHandler(async (req, res) => {
   const secretKey   = process.env.MOMO_SECRET_KEY;
   const redirectUrl = process.env.MOMO_REDIRECT_URL;
   const ipnUrl      = process.env.MOMO_IPN_URL;
+
+  if (!partnerCode || !accessKey || !secretKey || !redirectUrl || !ipnUrl) {
+    res.status(500);
+    throw new Error('MoMo payment is not configured on the server');
+  }
 
   const orderId      = `${order._id}-${Date.now()}`;
   const requestId    = `${partnerCode}-${Date.now()}`;
@@ -185,7 +293,8 @@ const createMomoPayment = asyncHandler(async (req, res) => {
 
   // Lưu MoMo orderId vào order để dùng khi verify
   order.paymentDetails = {
-    transactionId: orderId,  // MoMo orderId (không phải MongoDB _id)
+    momoOrderId: orderId,
+    transactionId: null,
   };
   await order.save();
 
@@ -218,6 +327,10 @@ const momoIPN = asyncHandler(async (req, res) => {
   const secretKey = process.env.MOMO_SECRET_KEY;
   const accessKey = process.env.MOMO_ACCESS_KEY;
 
+  if (!secretKey || !accessKey) {
+    return res.status(500).json({ message: 'MoMo payment is not configured on the server' });
+  }
+
   const rawSignature =
     `accessKey=${accessKey}` +
     `&amount=${amount}` +
@@ -240,42 +353,25 @@ const momoIPN = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: 'Invalid signature' });
   }
 
-  // Tìm order theo MoMo orderId (lưu trong paymentDetails.transactionId)
-  const order = await Order.findOne({ 'paymentDetails.transactionId': orderId });
+  const order = await Order.findOne({
+    $or: [
+      { 'paymentDetails.momoOrderId': orderId },
+      { 'paymentDetails.transactionId': orderId },
+    ],
+  });
 
   if (!order) {
     console.error('❌ MoMo IPN: Order not found for orderId:', orderId);
     return res.status(404).json({ message: 'Order not found' });
   }
 
-  if (resultCode === 0) {
-    // Thanh toán thành công
-    order.paymentStatus = 'paid';
-    order.paymentDetails = {
-      transactionId: transId.toString(),
-      paidAt: new Date(),
-    };
-    await order.save();
-
-    // ✅ Trừ stock SAU KHI thanh toán thành công
-    for (const item of order.items) {
-      await Product.findByIdAndUpdate(item.product, {
-        $inc: { stock: -item.quantity, sold: item.quantity },
-      });
-    }
-
-    // Xóa giỏ hàng sau khi thanh toán thành công
-    await Cart.findOneAndUpdate(
-      { user: order.user },
-      { items: [], totalItems: 0, totalPrice: 0 }
-    );
-    console.log(`✅ MoMo IPN: Order ${order.orderNumber} marked as paid`);
-  } else {
-    // Thanh toán thất bại
-    order.paymentStatus = 'failed';
-    await order.save();
-    console.log(`❌ MoMo IPN: Order ${order.orderNumber} payment failed (resultCode: ${resultCode})`);
-  }
+  await finalizeMomoPayment({
+    order,
+    resultCode,
+    transactionId: transId?.toString() || null,
+    momoOrderId: orderId,
+    actor: 'ipn',
+  });
 
   // MoMo yêu cầu response 200
   res.status(200).json({ message: 'IPN received' });
@@ -296,7 +392,10 @@ const verifyMomoPayment = asyncHandler(async (req, res) => {
 
   // Tìm order theo MoMo orderId
   const order = await Order.findOne({
-    'paymentDetails.transactionId': momoOrderId,
+    $or: [
+      { 'paymentDetails.momoOrderId': momoOrderId },
+      { 'paymentDetails.transactionId': momoOrderId },
+    ],
     user: req.user._id,
   });
 
@@ -319,6 +418,11 @@ const verifyMomoPayment = asyncHandler(async (req, res) => {
   const secretKey   = process.env.MOMO_SECRET_KEY;
   const requestId   = `verify-${Date.now()}`;
   const lang        = 'vi';
+
+  if (!partnerCode || !accessKey || !secretKey) {
+    res.status(500);
+    throw new Error('MoMo payment is not configured on the server');
+  }
 
   const rawSignature =
     `accessKey=${accessKey}` +
@@ -371,43 +475,19 @@ const verifyMomoPayment = asyncHandler(async (req, res) => {
     });
   }
 
-  // resultCode = 0 → đã thanh toán thành công
-  if (queryResult.resultCode === 0) {
-    // Chỉ trừ stock nếu order CHƯA được đánh dấu paid (tránh IPN + verify trừ 2 lần)
-    if (order.paymentStatus !== 'paid') {
-      // ✅ Trừ stock SAU KHI thanh toán thành công
-      for (const item of order.items) {
-        await Product.findByIdAndUpdate(item.product, {
-          $inc: { stock: -item.quantity, sold: item.quantity },
-        });
-      }
-    }
-
-    order.paymentStatus = 'paid';
-    order.paymentDetails = {
-      transactionId: queryResult.transId?.toString() || momoOrderId,
-      paidAt: new Date(),
-    };
-    await order.save();
-
-    // Xóa giỏ hàng sau khi xác nhận thanh toán thành công
-    await Cart.findOneAndUpdate(
-      { user: req.user._id },
-      { items: [], totalItems: 0, totalPrice: 0 }
-    );
-    console.log(`✅ Verify: Order ${order.orderNumber} confirmed paid via MoMo Query`);
-  } else {
-    // resultCode khác 0: chưa thanh toán / thất bại
-    order.paymentStatus = 'failed';
-    await order.save();
-    console.log(`❌ Verify: MoMo resultCode ${queryResult.resultCode} - ${queryResult.message}`);
-  }
+  const finalOrder = await finalizeMomoPayment({
+    order,
+    resultCode: queryResult.resultCode,
+    transactionId: queryResult.transId?.toString() || null,
+    momoOrderId,
+    actor: 'verify',
+  });
 
   res.json({
     success: true,
     data: {
-      order,
-      paymentStatus: order.paymentStatus,
+      order: finalOrder,
+      paymentStatus: finalOrder.paymentStatus,
       momoResultCode: queryResult.resultCode,
       momoMessage: queryResult.message,
     },

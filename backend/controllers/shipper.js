@@ -72,26 +72,32 @@ const getOrders = asyncHandler(async (req, res) => {
 });
 
 const acceptOrder = asyncHandler(async (req, res) => {
-  const order = await Order.findById(req.params.orderId);
+  const order = await Order.findOneAndUpdate(
+    {
+      _id: req.params.orderId,
+      shipper: null,
+      status: 'confirmed',
+    },
+    {
+      $set: {
+        shipper: req.user._id,
+        status: 'processing',
+      },
+      $push: {
+        statusHistory: {
+          status: 'processing',
+          note: 'Đơn hàng đã được shipper nhận',
+          updatedAt: new Date(),
+          updatedBy: req.user._id,
+        },
+      },
+    },
+    { new: true }
+  );
 
   if (!order) {
-    return res.status(404).json({ success: false, message: 'Order not found' });
+    return res.status(409).json({ success: false, message: 'Order is no longer available' });
   }
-
-  if (order.shipper) {
-    return res.status(400).json({ success: false, message: 'Order already assigned to a shipper' });
-  }
-
-  if (order.status === 'delivered' || order.status === 'cancelled') {
-    return res.status(400).json({ success: false, message: 'Cannot accept completed or cancelled order' });
-  }
-
-  order.shipper = req.user._id;
-  if (order.status === 'confirmed') {
-    order.status = 'processing';
-  }
-
-  await order.save();
 
   res.status(200).json({
     success: true,

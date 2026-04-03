@@ -1,11 +1,18 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { createOrder } from '../store/slices/orderSlice';
-import { resetCart } from '../store/slices/cartSlice';
 import toast from 'react-hot-toast';
 import { formatVND } from '../utils/currency';
 import api from '../services/api';
+
+const createCheckoutRequestKey = () => {
+  if (window.crypto?.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+
+  return `checkout-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+};
 
 const CheckoutPage = () => {
   const dispatch = useDispatch();
@@ -27,6 +34,12 @@ const CheckoutPage = () => {
   });
 
   const [isProcessing, setIsProcessing] = useState(false);
+
+  useEffect(() => {
+    if (!isProcessing && items.length === 0) {
+      navigate('/cart');
+    }
+  }, [isProcessing, items.length, navigate]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -200,6 +213,7 @@ const CheckoutPage = () => {
       },
       paymentMethod: formData.paymentMethod,
       note: formData.note,
+      checkoutRequestKey: createCheckoutRequestKey(),
     };
 
     try {
@@ -212,7 +226,6 @@ const CheckoutPage = () => {
 
       // COD / bank_transfer / zalopay / credit_card → flow cũ
       const result = await dispatch(createOrder(orderData)).unwrap();
-      dispatch(resetCart());
       toast.success('Order placed successfully!', { id: 'orderProcess' });
       navigate(`/orders/${result._id}`);
     } catch (error) {
@@ -222,8 +235,7 @@ const CheckoutPage = () => {
     }
   };
 
-  if (items.length === 0) {
-    navigate('/cart');
+  if (!isProcessing && items.length === 0) {
     return null;
   }
 

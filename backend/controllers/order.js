@@ -1,4 +1,5 @@
 const asyncHandler = require('express-async-handler');
+const mongoose = require('mongoose');
 const Order = require('../schemas/Order');
 const Product = require('../schemas/Product');
 const { 
@@ -16,73 +17,110 @@ const {
 } = require('../socket/socketServer');
 
 const createOrder = asyncHandler(async (req, res) => {
-  const { shippingAddress, paymentMethod, note } = req.body;
+  const { shippingAddress, paymentMethod, note, checkoutRequestKey } = req.body;
 
   const Cart = require('../schemas/Cart');
-  const cart = await Cart.findOne({ user: req.user._id }).populate({
-    path: 'items.product',
-    select: 'name price images stock isActive',
-  });
-
-  if (!cart || cart.items.length === 0) {
-    res.status(400);
-    throw new Error('Cart is empty');
+  if (checkoutRequestKey) {
+    const existingOrder = await Order.findOne({ user: req.user._id, checkoutRequestKey });
+    if (existingOrder) {
+      return res.status(200).json({
+        success: true,
+        message: 'Order already created',
+        data: { order: existingOrder },
+      });
+    }
   }
 
-  const orderItems = [];
+  const session = await mongoose.startSession();
+  let createdOrder;
 
-  for (const item of cart.items) {
-    if (!item.product || !item.product.isActive) {
-      res.status(400);
-      throw new Error(`Product "${item.product?.name || 'Unknown'}" is no longer available`);
-    }
+  try {
+    await session.withTransaction(async () => {
+      const cart = await Cart.findOne({ user: req.user._id }).populate({
+        path: 'items.product',
+        select: 'name price images stock isActive',
+      }).session(session);
 
-    if (item.product.stock < item.quantity) {
-      res.status(400);
-      throw new Error(`Not enough stock for "${item.product.name}". Available: ${item.product.stock}`);
-    }
+      if (!cart || cart.items.length === 0) {
+        res.status(400);
+        throw new Error('Cart is empty');
+      }
 
-    orderItems.push({
-      product: item.product._id,
-      name: item.product.name,
-      image: item.product.images[0]?.url || '',
-      price: item.product.price,
-      quantity: item.quantity,
+      const orderItems = [];
+
+      for (const item of cart.items) {
+        if (!item.product || !item.product.isActive) {
+          res.status(400);
+          throw new Error(`Product "${item.product?.name || 'Unknown'}" is no longer available`);
+        }
+
+        const stockResult = await Product.updateOne(
+          {
+            _id: item.product._id,
+            isActive: true,
+            stock: { $gte: item.quantity },
+          },
+          {
+            $inc: { stock: -item.quantity, sold: item.quantity },
+          },
+          { session }
+        );
+
+        if (!stockResult.modifiedCount) {
+          res.status(409);
+          throw new Error(`Not enough stock for "${item.product.name}".`);
+        }
+
+        orderItems.push({
+          product: item.product._id,
+          name: item.product.name,
+          image: item.product.images[0]?.url || '',
+          price: item.product.price,
+          quantity: item.quantity,
+        });
+      }
+
+      const order = new Order({
+        user: req.user._id,
+        checkoutRequestKey: checkoutRequestKey || null,
+        items: orderItems,
+        shippingAddress: {
+          ...shippingAddress,
+          latitude: shippingAddress.latitude,
+          longitude: shippingAddress.longitude,
+        },
+        paymentMethod: paymentMethod || 'cod',
+        note,
+        stockCommitted: true,
+      });
+
+      order.calculatePrices();
+      order.statusHistory.push({
+        status: 'pending',
+        note: 'Order placed',
+        updatedAt: new Date(),
+      });
+
+      await order.save({ session });
+      await Cart.findOneAndUpdate(
+        { user: req.user._id },
+        { items: [], totalItems: 0, totalPrice: 0 },
+        { session }
+      );
+
+      createdOrder = order;
     });
-
-    await Product.findByIdAndUpdate(item.product._id, {
-      $inc: { stock: -item.quantity, sold: item.quantity },
-    });
+  } finally {
+    await session.endSession();
   }
 
-  const order = new Order({
-    user: req.user._id,
-    items: orderItems,
-    shippingAddress: {
-      ...shippingAddress,
-      latitude: shippingAddress.latitude,
-      longitude: shippingAddress.longitude,
-    },
-    paymentMethod: paymentMethod || 'cod',
-    note,
-  });
-
-  order.calculatePrices();
-  order.statusHistory.push({
-    status: 'pending',
-    note: 'Order placed',
-    updatedAt: new Date(),
-  });
-
-  await order.save();
-  await Cart.findOneAndUpdate({ user: req.user._id }, { items: [], totalItems: 0, totalPrice: 0 });
   const { emitNewOrderNotification } = require('../socket/socketServer');
-  emitNewOrderNotification(order);
+  emitNewOrderNotification(createdOrder);
 
   res.status(201).json({
     success: true,
     message: 'Order placed successfully',
-    data: { order },
+    data: { order: createdOrder },
   });
 });
 
@@ -146,10 +184,13 @@ const cancelOrder = asyncHandler(async (req, res) => {
     throw new Error('Cannot cancel order in current status');
   }
 
-  for (const item of order.items) {
-    await Product.findByIdAndUpdate(item.product, {
-      $inc: { stock: item.quantity, sold: -item.quantity },
-    });
+  if (order.stockCommitted && !order.stockReleased) {
+    for (const item of order.items) {
+      await Product.findByIdAndUpdate(item.product, {
+        $inc: { stock: item.quantity, sold: -item.quantity },
+      });
+    }
+    order.stockReleased = true;
   }
 
   order.status = 'cancelled';
@@ -412,7 +453,7 @@ const getAvailableOrdersForShippers = asyncHandler(async (req, res) => {
 
   // Show all orders that are ready for delivery (confirmed) or in progress
   const query = {
-    status: { $in: ['confirmed', 'processing', 'completed', 'shipped', 'delivered'] }
+    status: { $in: ['confirmed'] },
   };
 
   // Filter by status if provided
@@ -463,7 +504,7 @@ const updateOrderByShipper = asyncHandler(async (req, res) => {
   }
 
   // Shipper can take over any order that's confirmed or in progress
-  const allowedCurrentStatuses = ['confirmed', 'processing', 'completed', 'shipped'];
+   const allowedCurrentStatuses = ['confirmed', 'processing', 'shipped'];
   if (!allowedCurrentStatuses.includes(order.status)) {
     res.status(400);
     throw new Error('Không thể cập nhật đơn hàng ở trạng thái này');
@@ -494,12 +535,11 @@ const updateOrderByShipper = asyncHandler(async (req, res) => {
     order.shipper = req.user._id;
   }
 
-  // If different shipper is updating, allow takeover for processing/completed/shipped orders
-  if (order.shipper && order.shipper.toString() !== req.user._id.toString()) {
-    if (['processing', 'completed', 'shipped'].includes(status)) {
-      order.shipper = req.user._id; // Transfer to current shipper
-    }
-  }
+   if (order.shipper && order.shipper.toString() !== req.user._id.toString()) {
+     if (['processing', 'shipped'].includes(status)) {
+       order.shipper = req.user._id; // Transfer to current shipper
+     }
+   }
 
   // Log the status change for audit
   await logStatusChange(order, status, req.user._id, note || `Cập nhật bởi shipper: ${getStatusDisplayName(status)}`, 'shipper', req);

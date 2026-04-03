@@ -21,7 +21,7 @@ const ShipperDashboard = () => {
             totalDeliveries: response.data.totalDeliveries || 0,
             rating: response.data.rating || 5,
             completedToday: 0,
-            pendingOrders: 0,
+            pendingOrders: response.data.activeDeliveries || 0,
           });
         }
       } catch (error) {

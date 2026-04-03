@@ -34,6 +34,10 @@ const orderSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
+    checkoutRequestKey: {
+      type: String,
+      default: null,
+    },
     orderNumber: {
       type: String,
       unique: true,
@@ -61,8 +65,12 @@ const orderSchema = new mongoose.Schema(
       default: 'pending',
     },
     paymentDetails: {
+      momoOrderId: String,
       transactionId: String,
       paidAt: Date,
+      lastResultCode: String,
+      lastWebhookAt: Date,
+      lastVerifiedAt: Date,
     },
     itemsPrice: {
       type: Number,
@@ -86,7 +94,7 @@ const orderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'],
+      enum: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'],
       default: 'pending',
     },
     statusHistory: [
@@ -121,6 +129,14 @@ const orderSchema = new mongoose.Schema(
     cancelReason: {
       type: String,
     },
+    stockCommitted: {
+      type: Boolean,
+      default: false,
+    },
+    stockReleased: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
@@ -130,6 +146,9 @@ const orderSchema = new mongoose.Schema(
 // Index for better query performance
 orderSchema.index({ user: 1, createdAt: -1 });
 orderSchema.index({ status: 1 });
+orderSchema.index({ user: 1, checkoutRequestKey: 1 }, { unique: true, sparse: true });
+orderSchema.index({ 'paymentDetails.momoOrderId': 1 }, { sparse: true });
+orderSchema.index({ 'paymentDetails.transactionId': 1 }, { sparse: true });
 
 // Generate order number before saving
 orderSchema.pre('save', async function (next) {
@@ -199,7 +218,7 @@ orderSchema.methods.getVietnameseStatus = function () {
   const statusMap = {
     'pending': 'Chờ xác nhận',
     'confirmed': 'Đã xác nhận',
-    'completed': 'Hoàn thành',
+    'processing': 'Đang xử lý',
     'shipped': 'Đang giao hàng',
     'delivered': 'Đã giao hàng',
     'cancelled': 'Đã hủy',

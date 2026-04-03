@@ -193,6 +193,13 @@ const createOrderValidation = [
     .optional()
     .isIn(['cod', 'bank_transfer', 'credit_card', 'momo', 'zalopay'])
     .withMessage('Invalid payment method'),
+  body('checkoutRequestKey')
+    .optional()
+    .isString()
+    .withMessage('checkoutRequestKey must be a string')
+    .trim()
+    .isLength({ min: 8, max: 100 })
+    .withMessage('checkoutRequestKey must be between 8 and 100 characters'),
   handleValidation,
 ];
 
@@ -200,7 +207,7 @@ const updateOrderStatusValidation = [
   body('status')
     .notEmpty()
     .withMessage('Status is required')
-    .isIn(['pending', 'confirmed', 'completed', 'shipped', 'delivered', 'cancelled'])
+    .isIn(['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'])
     .withMessage('Invalid order status'),
   body('note')
     .optional()

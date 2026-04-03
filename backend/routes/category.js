@@ -21,7 +21,6 @@ const { categoryValidation, mongoIdValidation } = require('../middleware/validat
 router.get('/', getCategories);
 router.get('/tree', getCategoryTree);
 router.get('/slug/:slug', getCategoryBySlug);
-router.get('/:id', mongoIdValidation('id'), getCategoryById);
 
 // Admin routes
 router.get('/admin/all', protect, admin, getAllCategoriesAdmin);
@@ -36,5 +35,7 @@ router.post(
   upload.single('image'),
   uploadCategoryImage
 );
+
+router.get('/:id', mongoIdValidation('id'), getCategoryById);
 
 module.exports = router;

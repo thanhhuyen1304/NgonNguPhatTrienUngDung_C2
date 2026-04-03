@@ -126,6 +126,7 @@ const orderSlice = createSlice({
       })
       .addCase(getOrderById.rejected, (state, action) => {
         state.loading = false;
+        state.order = null;
         state.error = action.payload;
       })
       // Cancel Order
