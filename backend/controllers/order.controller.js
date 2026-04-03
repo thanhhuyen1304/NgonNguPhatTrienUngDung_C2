@@ -2,19 +2,19 @@ const asyncHandler = require('express-async-handler');
 const Order = require('../models/Order');
 const Cart = require('../models/Cart');
 const Product = require('../models/Product');
-const { 
-  validateStatusTransition, 
-  logStatusChange, 
-  logValidationFailure, 
+const {
+  validateStatusTransition,
+  logStatusChange,
+  logValidationFailure,
   getStatusDisplayName,
   getAvailableStatusesForRole,
   ADMIN_ALLOWED_STATUSES,
   SHIPPER_EXCLUSIVE_STATUSES
 } = require('../utils/orderStatusValidation');
-const { 
-  emitOrderStatusUpdate, 
+const {
+  emitOrderStatusUpdate,
   emitNewOrderNotification,
-  emitOrderAssignmentNotification 
+  emitOrderAssignmentNotification
 } = require('../socket/socketServer');
 
 // @desc    Create new order
@@ -300,7 +300,7 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
       validationError.message,
       req
     );
-    
+
     res.status(400);
     throw new Error(`Status validation failed: ${validationError.message}`);
   }
@@ -506,7 +506,7 @@ const getAvailableOrdersForShippers = asyncHandler(async (req, res) => {
 // @access  Private/Shipper
 const updateOrderByShipper = asyncHandler(async (req, res) => {
   const { status, note, location } = req.body;
-  
+
   const order = await Order.findById(req.params.id);
 
   if (!order) {
@@ -536,7 +536,7 @@ const updateOrderByShipper = asyncHandler(async (req, res) => {
       validationError.message,
       req
     );
-    
+
     res.status(400);
     throw new Error(`Validation failed: ${validationError.message}`);
   }
@@ -665,7 +665,7 @@ const getShipperOrders = asyncHandler(async (req, res) => {
 // @access  Private/Shipper
 const updateDeliveryStatus = asyncHandler(async (req, res) => {
   const { status, note, location } = req.body;
-  
+
   const order = await Order.findById(req.params.id);
 
   if (!order) {
