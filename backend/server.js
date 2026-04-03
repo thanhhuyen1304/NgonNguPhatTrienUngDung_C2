@@ -12,20 +12,20 @@ const path = require('path');
 dotenv.config();
 
 // Import routes
-const authRoutes = require('./routes/auth.routes');
-const userRoutes = require('./routes/user.routes');
-const productRoutes = require('./routes/product.routes');
-const categoryRoutes = require('./routes/category.routes');
-const cartRoutes = require('./routes/cart.routes');
-const orderRoutes = require('./routes/order.routes');
-const uploadRoutes = require('./routes/upload.routes');
-const wishlistRoutes = require('./routes/wishlist.routes');
-const shipperRoutes = require('./routes/shipper.routes');
-const supportRoutes = require('./routes/support.routes');
-const paymentRoutes = require('./routes/payment.routes');
+const auth = require('./routes/auth');
+const user = require('./routes/user');
+const product = require('./routes/product');
+const category = require('./routes/category');
+const cart = require('./routes/cart');
+const order = require('./routes/order');
+const upload = require('./routes/upload');
+const wishlist = require('./routes/wishlist');
+const shipper = require('./routes/shipper');
+const support = require('./routes/support');
+const payment = require('./routes/payment');
 
 // Import middleware
-const errorHandler = require('./middleware/errorHandler');
+const error = require('./middleware/error');
 
 // Import passport config
 require('./config/passport');
@@ -130,17 +130,17 @@ mongoose.connection.on('disconnected', () => {
 /* =======================
    API Routes
 ======================= */
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/cart', cartRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/upload', uploadRoutes);
-app.use('/api/wishlist', wishlistRoutes);
-app.use('/api/shipper', shipperRoutes);
-app.use('/api/support', supportRoutes);
-app.use('/api/payment', paymentRoutes);
+app.use('/api/auth', auth);
+app.use('/api/users', user);
+app.use('/api/products', product);
+app.use('/api/categories', category);
+app.use('/api/cart', cart);
+app.use('/api/orders', order);
+app.use('/api/upload', upload);
+app.use('/api/wishlist', wishlist);
+app.use('/api/shipper', shipper);
+app.use('/api/support', support);
+app.use('/api/payment', payment);
 
 /* =======================
    Health Check
@@ -172,7 +172,7 @@ app.get('/api/health', (req, res) => {
 /* =======================
    Error Handling
 ======================= */
-app.use(errorHandler);
+app.use(error);
 
 // 404 handler
 app.use((req, res) => {
