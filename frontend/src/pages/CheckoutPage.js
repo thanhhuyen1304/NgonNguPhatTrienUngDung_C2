@@ -5,6 +5,7 @@ import { createOrder } from '../store/slices/orderSlice';
 import { resetCart } from '../store/slices/cartSlice';
 import toast from 'react-hot-toast';
 import { formatVND } from '../utils/currency';
+import api from '../services/api';
 
 const CheckoutPage = () => {
   const dispatch = useDispatch();
@@ -34,6 +35,25 @@ const CheckoutPage = () => {
   const shippingCost = totalPrice > 500000 ? 0 : 30000;
   const taxPrice = Math.round(totalPrice * 0.1);
   const finalTotal = totalPrice + shippingCost + taxPrice;
+
+  // ── Xử lý MoMo payment ──────────────────────────────────────
+  const handleMomoPayment = async (orderData) => {
+    // Dùng api axios instance (tự động gửi accessToken qua interceptor)
+    const response = await api.post('/payment/momo/create', orderData);
+    const data = response.data;
+
+    if (!data.success) {
+      throw new Error(data.message || 'Không thể tạo link thanh toán MoMo');
+    }
+
+    // ⚠️ KHÔNG xóa giỏ hàng ở đây — chỉ xóa sau khi thanh toán thành công
+    // Giỏ hàng sẽ được xóa trên PaymentResultPage khi verify thành công
+
+    toast.success('Đang chuyển đến MoMo...', { id: 'orderProcess' });
+
+    // Redirect sang MoMo payment page
+    window.location.href = data.data.payUrl;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -183,6 +203,14 @@ const CheckoutPage = () => {
     };
 
     try {
+      // ── Phân nhánh theo phương thức thanh toán ──────────────
+      if (formData.paymentMethod === 'momo') {
+        await handleMomoPayment(orderData);
+        // Nếu thành công → window.location.href redirect, hàm kết thúc ở đây
+        return;
+      }
+
+      // COD / bank_transfer / zalopay / credit_card → flow cũ
       const result = await dispatch(createOrder(orderData)).unwrap();
       dispatch(resetCart());
       toast.success('Order placed successfully!', { id: 'orderProcess' });

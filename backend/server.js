@@ -22,6 +22,7 @@ const uploadRoutes = require('./routes/upload.routes');
 const wishlistRoutes = require('./routes/wishlist.routes');
 const shipperRoutes = require('./routes/shipper.routes');
 const supportRoutes = require('./routes/support.routes');
+const paymentRoutes = require('./routes/payment.routes');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -139,6 +140,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/shipper', shipperRoutes);
 app.use('/api/support', supportRoutes);
+app.use('/api/payment', paymentRoutes);
 
 /* =======================
    Health Check
