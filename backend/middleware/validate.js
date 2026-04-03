@@ -3,6 +3,45 @@ const { body, param, query, validationResult } = require('express-validator');
 const strongPasswordRule = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d\s])(?=\S+$).{8,}$/;
 const strongPasswordMessage = 'Password must be at least 8 characters and include uppercase, lowercase, number, special character, and no spaces';
 
+const requiredEmail = (field = 'email') => body(field)
+  .trim()
+  .notEmpty()
+  .withMessage('Email is required')
+  .isEmail()
+  .withMessage('Please provide a valid email')
+  .normalizeEmail();
+
+const requiredPassword = (field = 'password', label = 'Password') => body(field)
+  .notEmpty()
+  .withMessage(`${label} is required`);
+
+const requiredStrongPassword = (field = 'password', label = 'Password') => body(field)
+  .notEmpty()
+  .withMessage(`${label} is required`)
+  .matches(strongPasswordRule)
+  .withMessage(strongPasswordMessage);
+
+const optionalMongoId = (field, message) => body(field)
+  .optional()
+  .isMongoId()
+  .withMessage(message);
+
+const requiredMongoId = (field, message) => body(field)
+  .notEmpty()
+  .withMessage(`${message} is required`)
+  .isMongoId()
+  .withMessage(`Invalid ${message}`);
+
+const optionalPage = () => query('page')
+  .optional()
+  .isInt({ min: 1 })
+  .withMessage('Page must be a positive integer');
+
+const optionalLimit = () => query('limit')
+  .optional()
+  .isInt({ min: 1, max: 1000 })
+  .withMessage('Limit must be between 1 and 1000');
+
 // Handle validation result
 const handleValidation = (req, res, next) => {
   const errors = validationResult(req);
@@ -27,40 +66,19 @@ const registerValidation = [
     .withMessage('Name is required')
     .isLength({ min: 2, max: 50 })
     .withMessage('Name must be between 2 and 50 characters'),
-  body('email')
-    .trim()
-    .notEmpty()
-    .withMessage('Email is required')
-    .isEmail()
-    .withMessage('Please provide a valid email')
-    .normalizeEmail(),
-  body('password')
-    .notEmpty()
-    .withMessage('Password is required')
-    .matches(strongPasswordRule)
-    .withMessage(strongPasswordMessage),
+  requiredEmail(),
+  requiredStrongPassword(),
   handleValidation,
 ];
 
 const loginValidation = [
-  body('email')
-    .trim()
-    .notEmpty()
-    .withMessage('Email is required')
-    .isEmail()
-    .withMessage('Please provide a valid email'),
-  body('password').notEmpty().withMessage('Password is required'),
+  requiredEmail(),
+  requiredPassword(),
   handleValidation,
 ];
 
 const forgotPasswordValidation = [
-  body('email')
-    .trim()
-    .notEmpty()
-    .withMessage('Email is required')
-    .isEmail()
-    .withMessage('Please provide a valid email')
-    .normalizeEmail(),
+  requiredEmail(),
   handleValidation,
 ];
 
@@ -69,23 +87,13 @@ const resetPasswordValidation = [
     .trim()
     .notEmpty()
     .withMessage('Reset token is required'),
-  body('newPassword')
-    .notEmpty()
-    .withMessage('New password is required')
-    .matches(strongPasswordRule)
-    .withMessage(strongPasswordMessage),
+  requiredStrongPassword('newPassword', 'New password'),
   handleValidation,
 ];
 
 const changePasswordValidation = [
-  body('currentPassword')
-    .notEmpty()
-    .withMessage('Current password is required'),
-  body('newPassword')
-    .notEmpty()
-    .withMessage('New password is required')
-    .matches(strongPasswordRule)
-    .withMessage(strongPasswordMessage),
+  requiredPassword('currentPassword', 'Current password'),
+  requiredStrongPassword('newPassword', 'New password'),
   handleValidation,
 ];
 
@@ -112,11 +120,7 @@ const productValidation = [
     .optional()
     .isFloat({ min: 0 })
     .withMessage('Compare price must be a positive number'),
-  body('category')
-    .notEmpty()
-    .withMessage('Category is required')
-    .isMongoId()
-    .withMessage('Invalid category ID'),
+  requiredMongoId('category', 'category ID'),
   body('stock')
     .optional()
     .isInt({ min: 0 })
@@ -142,20 +146,13 @@ const categoryValidation = [
     .trim()
     .isLength({ max: 500 })
     .withMessage('Description cannot exceed 500 characters'),
-  body('parent')
-    .optional()
-    .isMongoId()
-    .withMessage('Invalid parent category ID'),
+  optionalMongoId('parent', 'Invalid parent category ID'),
   handleValidation,
 ];
 
 // Cart validation rules
 const addToCartValidation = [
-  body('productId')
-    .notEmpty()
-    .withMessage('Product ID is required')
-    .isMongoId()
-    .withMessage('Invalid product ID'),
+  requiredMongoId('productId', 'product ID'),
   body('quantity')
     .optional()
     .isInt({ min: 1 })
@@ -221,14 +218,8 @@ const mongoIdValidation = (paramName) => [
 
 // Pagination validation
 const paginationValidation = [
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
-  query('limit')
-    .optional()
-    .isInt({ min: 1, max: 1000 })
-    .withMessage('Limit must be between 1 and 1000'),
+  optionalPage(),
+  optionalLimit(),
   handleValidation,
 ];
 
