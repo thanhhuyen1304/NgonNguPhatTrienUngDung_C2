@@ -265,7 +265,12 @@ const CheckoutPage = () => {
       toast.success('Order placed successfully!', { id: 'orderProcess' });
       navigate(`/orders/${result._id}`);
     } catch (error) {
-      toast.error(error || 'Failed to place order', { id: 'orderProcess' });
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        (typeof error === 'string' ? error : 'Failed to place order');
+
+      toast.error(errorMessage, { id: 'orderProcess' });
     } finally {
       setIsProcessing(false);
     }

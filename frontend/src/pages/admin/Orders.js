@@ -11,7 +11,6 @@ import {
   ArrowPathIcon,
   MagnifyingGlassIcon,
   FunnelIcon,
-  ChevronDownIcon,
   CalendarDaysIcon,
   CurrencyDollarIcon,
   UserIcon,
@@ -78,7 +77,15 @@ const AdminOrders = () => {
     fetchOrders();
   }, [fetchOrders]);
 
-  // Setup real-time updates
+  const fetchOrderStats = useCallback(async () => {
+    try {
+      const statsResponse = await api.get('/orders/admin/stats');
+      setOrderStats(statsResponse.data.data);
+    } catch (error) {
+      console.error('Stats error:', error);
+    }
+  }, []);
+
   useEffect(() => {
     const handleOrderStatusUpdate = (data) => {
       console.log('📦 Real-time order update received:', data);
@@ -116,16 +123,7 @@ const AdminOrders = () => {
       socketService.off('order_status_updated', handleOrderStatusUpdate);
       socketService.off('new_order', handleNewOrder);
     };
-  }, []);
-
-  const fetchOrderStats = useCallback(async () => {
-    try {
-      const statsResponse = await api.get('/orders/admin/stats');
-      setOrderStats(statsResponse.data.data);
-    } catch (error) {
-      console.error('Stats error:', error);
-    }
-  }, []);
+  }, [fetchOrderStats, fetchOrders]);
 
   const getStatusConfig = (status) => {
     const configs = {
@@ -179,22 +177,6 @@ const AdminOrders = () => {
     setPaymentStatus('');
     setDateRange({ start: '', end: '' });
     setPage(1);
-  };
-
-  const statusTranslations = {
-    pending: t('orders.pending'),
-    confirmed: t('orders.confirmed'),
-    processing: t('orders.processing'),
-    shipped: t('orders.shipped'),
-    delivered: t('orders.delivered'),
-    cancelled: t('orders.cancelled'),
-  };
-
-  const paymentStatusTranslations = {
-    pending: t('orders.pending'),
-    paid: t('common.success'),
-    failed: t('common.error'),
-    refunded: t('common.refunded'),
   };
 
   return (

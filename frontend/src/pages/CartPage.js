@@ -9,6 +9,7 @@ import {
 } from '../store/slices/cartSlice';
 import Loading from '../components/common/Loading';
 import toast from 'react-hot-toast';
+import { formatVND } from '../utils/currency';
 import {
   TrashIcon,
   MinusIcon,
@@ -160,7 +161,7 @@ const CartPage = () => {
                       {/* Price */}
                       <div className="col-span-2 text-center mt-4 md:mt-0">
                         <span className="md:hidden text-gray-500 mr-2">Price:</span>
-                        <span className="font-medium">${item.price.toFixed(2)}</span>
+                        <span className="font-medium">{formatVND(item.price)}</span>
                       </div>
 
                       {/* Quantity */}
@@ -193,7 +194,7 @@ const CartPage = () => {
                       {/* Total & Remove */}
                       <div className="col-span-2 text-right mt-4 md:mt-0">
                         <span className="font-semibold text-blue-600">
-                          ${(item.price * item.quantity).toFixed(2)}
+                          {formatVND(item.price * item.quantity)}
                         </span>
                         <button
                           onClick={() => handleRemoveItem(product?._id)}
@@ -236,23 +237,23 @@ const CartPage = () => {
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-600">Subtotal</span>
-                <span className="font-medium">${totalPrice.toFixed(2)}</span>
+                <span className="font-medium">{formatVND(totalPrice)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Shipping</span>
                 <span className="font-medium">
-                  {shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`}
+                  {shippingCost === 0 ? 'Miễn phí' : formatVND(shippingCost)}
                 </span>
               </div>
               {shippingCost > 0 && (
                 <p className="text-xs text-gray-500">
-                  Free shipping on orders over $500
+                  Miễn phí vận chuyển cho đơn hàng trên 500.000 ₫
                 </p>
               )}
               <hr />
               <div className="flex justify-between text-lg font-bold">
                 <span>Total</span>
-                <span className="text-blue-600">${finalTotal.toFixed(2)}</span>
+                <span className="text-blue-600">{formatVND(finalTotal)}</span>
               </div>
             </div>
 
@@ -264,7 +265,7 @@ const CartPage = () => {
             </button>
 
             <div className="mt-4 text-center text-sm text-gray-500">
-              <p>Secure checkout powered by Stripe</p>
+              <p>Thanh toán an toàn và theo dõi đơn hàng dễ dàng</p>
             </div>
           </div>
         </div>
