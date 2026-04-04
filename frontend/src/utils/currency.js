@@ -94,10 +94,12 @@ export const formatPriceWithDiscount = (price, comparePrice) => {
   };
 };
 
-export default {
+const currencyUtils = {
   formatVND,
   formatVNDShort,
   parseVND,
   convertUSDToVND,
   formatPriceWithDiscount
 };
+
+export default currencyUtils;
