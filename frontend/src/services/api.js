@@ -112,4 +112,6 @@ api.interceptors.response.use(
 
 export const getApiOrigin = () => baseURL.replace(/\/api$/, '');
 
+export const getResponseData = (response) => response?.data?.data ?? null;
+
 export default api;

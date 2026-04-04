@@ -3,7 +3,6 @@ import {
   XMarkIcon, 
   CubeIcon, 
   TagIcon, 
-  BanknotesIcon, 
   ArchiveBoxIcon, 
   ClockIcon,
   GlobeAltIcon

@@ -8,19 +8,18 @@ import {
   PaperClipIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
-import api from '../../services/api';
 import SupportMessageList from './SupportMessageList';
 import {
   createAttachmentPreview,
-  extractConversation,
-  extractMessages,
-  getResponsePayload,
   mergeMessages,
-  normalizeConversation,
-  normalizeMessage,
   revokeAttachmentPreview,
-  sortMessagesByTime,
 } from './supportUtils';
+import {
+  getMySupportConversation,
+  getSupportConversationMessages,
+  markSupportConversationRead,
+  sendSupportMessage,
+} from '../../services/supportService';
 
 const SupportWidget = () => {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
@@ -74,9 +73,7 @@ const SupportWidget = () => {
       setLoading(true);
 
       try {
-        const conversationResponse = await api.get('/support/me');
-        const conversationPayload = getResponsePayload(conversationResponse);
-        const nextConversation = normalizeConversation(extractConversation(conversationPayload));
+        const nextConversation = await getMySupportConversation();
 
         if (stopped) {
           return;
@@ -89,18 +86,14 @@ const SupportWidget = () => {
           return;
         }
 
-        const messagesResponse = await api.get(`/support/conversations/${nextConversation._id}/messages`);
-        const messagesPayload = getResponsePayload(messagesResponse);
-        const nextMessages = sortMessagesByTime(
-          extractMessages(messagesPayload).map(normalizeMessage).filter(Boolean)
-        );
+        const nextMessages = await getSupportConversationMessages(nextConversation._id);
 
         if (stopped) {
           return;
         }
 
         setMessages(nextMessages);
-        await api.patch(`/support/conversations/${nextConversation._id}/read`);
+        await markSupportConversationRead(nextConversation._id);
       } catch (error) {
         if (!stopped) {
           toast.error(error.response?.data?.message || 'Không thể tải hỗ trợ');
@@ -173,24 +166,11 @@ const SupportWidget = () => {
 
     try {
       setSending(true);
-      const formData = new FormData();
-
-      if (text) {
-        formData.append('text', text);
-      }
-
-      attachments.forEach((attachment) => {
-        formData.append('attachments', attachment.file);
+      const message = await sendSupportMessage({
+        conversationId: conversation._id,
+        text,
+        attachments,
       });
-
-      const response = await api.post(`/support/conversations/${conversation._id}/messages`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      const payload = getResponsePayload(response);
-      const message = normalizeMessage(payload?.message || payload?.data?.message || null);
 
       if (message) {
         setMessages((current) => mergeMessages(current, [message]));

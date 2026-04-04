@@ -11,7 +11,7 @@ const {
   issueAuthSession,
   buildResetPasswordUrl,
   verifyRefreshToken,
-} = require('./auth.helpers');
+} = require('../services/authHelpers');
 const { uploadBuffer } = require('../config/cloudinary');
 
 const register = asyncHandler(async (req, res) => {

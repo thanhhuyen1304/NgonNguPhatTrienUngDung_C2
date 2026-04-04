@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { bootstrapAuth, clearSessionState, hasStoredSessionHint } from './store/slices/authSlice';
@@ -53,7 +53,8 @@ import RoleChangeNotification from './components/common/RoleChangeNotification';
 function App() {
   const dispatch = useDispatch();
   const location = useLocation();
-  const { isAuthenticated, initialized } = useSelector((state) => state.auth);
+  const { isAuthenticated, initialized, user } = useSelector((state) => state.auth);
+  const authBootstrapAttemptedRef = useRef(false);
   
   // Use role redirect hook
   useRoleRedirect();
@@ -65,12 +66,19 @@ function App() {
   useEffect(() => {
     const isGoogleCallbackRoute = location.pathname === '/auth/google/callback';
 
-    if (!isGoogleCallbackRoute && hasStoredSessionHint()) {
-      dispatch(bootstrapAuth());
+    if (isGoogleCallbackRoute) {
       return;
     }
 
-    if (!isGoogleCallbackRoute) {
+    if (authBootstrapAttemptedRef.current) {
+      return;
+    }
+
+    authBootstrapAttemptedRef.current = true;
+
+    if (hasStoredSessionHint()) {
+      dispatch(bootstrapAuth());
+    } else {
       dispatch(clearSessionState());
     }
   }, [dispatch, location.pathname]);
@@ -89,11 +97,11 @@ function App() {
   }, [initialized, isAuthenticated]);
 
   useEffect(() => {
-    if (initialized && isAuthenticated) {
+    if (initialized && isAuthenticated && user?.role !== 'admin') {
       dispatch(getCart());
       dispatch(getWishlist());
     }
-  }, [dispatch, initialized, isAuthenticated]);
+  }, [dispatch, initialized, isAuthenticated, user?.role]);
 
   return (
     <>

@@ -1,20 +1,21 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useI18n } from '../../i18n';
-import api from '../../services/api';
 import toast from 'react-hot-toast';
+import {
+  deleteAdminUser,
+  getAdminUsers,
+  updateAdminUser,
+} from '../../services/adminUserService';
 import {
   EyeIcon,
   ShieldCheckIcon,
   ShieldExclamationIcon,
   UsersIcon,
   MagnifyingGlassIcon,
-  FunnelIcon,
   UserCircleIcon,
   ArchiveBoxIcon,
-  TrophyIcon,
   EnvelopeIcon,
   CalendarDaysIcon,
-  SignalIcon,
   TruckIcon,
   TrashIcon,
   LockClosedIcon,
@@ -41,16 +42,13 @@ const AdminUsers = () => {
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams({
+      const data = await getAdminUsers({
         page,
-        limit: 15,
-        ...(search && { search }),
-        ...(role && { role }),
+        search,
+        role,
       });
-
-      const response = await api.get(`/users?${params}`);
-      setUsers(response.data.data.users);
-      setTotalPages(response.data.data.pagination.pages);
+      setUsers(data.users);
+      setTotalPages(data.totalPages);
     } catch (error) {
       toast.error(`${t('common.error')}: Không thể tải danh sách người dùng`);
     } finally {
@@ -73,7 +71,7 @@ const AdminUsers = () => {
 
   const toggleUserStatus = async (userId, currentStatus) => {
     try {
-      await api.put(`/users/${userId}`, { isActive: !currentStatus });
+      await updateAdminUser(userId, { isActive: !currentStatus });
       toast.success(!currentStatus ? 'User activated successfully' : 'User locked successfully');
       fetchUsers();
     } catch (error) {
@@ -84,7 +82,7 @@ const AdminUsers = () => {
   const handleDeleteUser = async () => {
     if (!userToDelete) return;
     try {
-      await api.delete(`/users/${userToDelete._id}`);
+      await deleteAdminUser(userToDelete._id);
       toast.success('User deleted successfully');
       setIsDeleteOpen(false);
       setUserToDelete(null);

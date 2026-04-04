@@ -5,6 +5,7 @@ import { login, clearError } from '../store/slices/authSlice';
 import { getApiOrigin } from '../services/api';
 import { useI18n } from '../i18n/I18nContext';
 import toast from 'react-hot-toast';
+import { getPostLoginRoute } from '../utils/roleRedirect';
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -45,11 +46,10 @@ const LoginPage = () => {
     e.preventDefault();
 
     try {
-      const result = await dispatch(login(formData)).unwrap();
+      const user = await dispatch(login(formData)).unwrap();
       toast.success(t('auth.loginSuccess'));
-      
-      // Always navigate to the intended destination (defaults to homepage '/')
-      navigate(from, { replace: true });
+
+      navigate(getPostLoginRoute(user, from), { replace: true });
     } catch (error) {
       // Error handled by useEffect
     }

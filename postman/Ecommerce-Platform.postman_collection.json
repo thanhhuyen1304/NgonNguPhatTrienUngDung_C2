@@ -1,0 +1,438 @@
+{
+  "info": {
+    "name": "Ecommerce Platform API",
+    "_postman_id": "b6cb4f46-14e2-44bc-bf03-8a77e2dc3e91",
+    "description": "Collection rebuilt from current backend routes in backend/server.js and backend/routes/*.js. Organized by mounted module, with role-aware auth variables and cleaner request grouping.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000/api" },
+    { "key": "activeAccessToken", "value": "" },
+    { "key": "customerAccessToken", "value": "" },
+    { "key": "adminAccessToken", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "adminId", "value": "" },
+    { "key": "productId", "value": "" },
+    { "key": "categoryId", "value": "" },
+    { "key": "orderId", "value": "" },
+    { "key": "couponId", "value": "" },
+    { "key": "conversationId", "value": "" },
+    { "key": "notificationId", "value": "" },
+    { "key": "imageId", "value": "" },
+    { "key": "imagePublicId", "value": "" },
+    { "key": "paymentOrderId", "value": "" },
+    { "key": "resetToken", "value": "" },
+    { "key": "customerEmail", "value": "customer@example.com" },
+    { "key": "customerPassword", "value": "Aa!12345" },
+    { "key": "adminEmail", "value": "admin@example.com" },
+    { "key": "adminPassword", "value": "Aa!12345" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "http://localhost:5000/health", "protocol": "http", "host": ["localhost"], "port": "5000", "path": ["health"] }
+          }
+        },
+        {
+          "name": "API Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register Customer",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "const json = pm.response.json();",
+              "if (json?.data?.accessToken) pm.collectionVariables.set('customerAccessToken', json.data.accessToken);",
+              "if (json?.data?.accessToken) pm.collectionVariables.set('activeAccessToken', json.data.accessToken);",
+              "if (json?.data?.user?._id) pm.collectionVariables.set('userId', json.data.user._id);"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Customer Demo\",\n  \"email\": \"{{customerEmail}}\",\n  \"password\": \"{{customerPassword}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          }
+        },
+        {
+          "name": "Login Customer",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "const json = pm.response.json();",
+              "if (json?.data?.accessToken) pm.collectionVariables.set('customerAccessToken', json.data.accessToken);",
+              "if (json?.data?.accessToken) pm.collectionVariables.set('activeAccessToken', json.data.accessToken);",
+              "if (json?.data?.user?._id) pm.collectionVariables.set('userId', json.data.user._id);"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{customerEmail}}\",\n  \"password\": \"{{customerPassword}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Login Admin",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "const json = pm.response.json();",
+              "if (json?.data?.accessToken) pm.collectionVariables.set('adminAccessToken', json.data.accessToken);",
+              "if (json?.data?.accessToken) pm.collectionVariables.set('activeAccessToken', json.data.accessToken);",
+              "if (json?.data?.user?._id) pm.collectionVariables.set('adminId', json.data.user._id);"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": { "method": "POST", "header": [], "url": { "raw": "{{baseUrl}}/auth/refresh-token", "host": ["{{baseUrl}}"], "path": ["auth", "refresh-token"] } }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{customerEmail}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/forgot-password", "host": ["{{baseUrl}}"], "path": ["auth", "forgot-password"] }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"newPassword\": \"Bb@12345\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/reset-password/{{resetToken}}", "host": ["{{baseUrl}}"], "path": ["auth", "reset-password", "{{resetToken}}"] }
+          }
+        },
+        {
+          "name": "Google OAuth Entry",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/auth/google", "host": ["{{baseUrl}}"], "path": ["auth", "google"] } }
+        },
+        {
+          "name": "Get Me",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{activeAccessToken}}" }], "url": { "raw": "{{baseUrl}}/auth/me", "host": ["{{baseUrl}}"], "path": ["auth", "me"] } }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{activeAccessToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name", "value": "Customer Demo Updated", "type": "text" },
+                { "key": "phone", "value": "0901234567", "type": "text" },
+                { "key": "street", "value": "123 Nguyen Hue", "type": "text" },
+                { "key": "city", "value": "Ho Chi Minh", "type": "text" },
+                { "key": "country", "value": "Vietnam", "type": "text" },
+                { "key": "avatar", "type": "file", "src": "" }
+              ]
+            },
+            "url": { "raw": "{{baseUrl}}/auth/profile", "host": ["{{baseUrl}}"], "path": ["auth", "profile"] }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{activeAccessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"currentPassword\": \"{{customerPassword}}\",\n  \"newPassword\": \"Bb@12345\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/change-password", "host": ["{{baseUrl}}"], "path": ["auth", "change-password"] }
+          }
+        },
+        {
+          "name": "Apply Shipper",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerAccessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"vehicleType\": \"Xe may\",\n  \"licensePlate\": \"59A1-12345\",\n  \"drivingLicense\": \"123456789\",\n  \"phone\": \"0901234567\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/apply-shipper", "host": ["{{baseUrl}}"], "path": ["auth", "apply-shipper"] }
+          }
+        },
+        {
+          "name": "Logout",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.collectionVariables.set('activeAccessToken', '');"
+            ]}
+          }],
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{activeAccessToken}}" }], "url": { "raw": "{{baseUrl}}/auth/logout", "host": ["{{baseUrl}}"], "path": ["auth", "logout"] } }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        { "name": "Get Categories", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/categories", "host": ["{{baseUrl}}"], "path": ["categories"] } } },
+        { "name": "Get Category Tree", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/categories/tree", "host": ["{{baseUrl}}"], "path": ["categories", "tree"] } } },
+        { "name": "Get Category By Slug", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/categories/slug/sample-slug", "host": ["{{baseUrl}}"], "path": ["categories", "slug", "sample-slug"] } } },
+        { "name": "Get Category By Id", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/categories/{{categoryId}}", "host": ["{{baseUrl}}"], "path": ["categories", "{{categoryId}}"] } } },
+        { "name": "Admin Get All Categories", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }], "url": { "raw": "{{baseUrl}}/categories/admin/all", "host": ["{{baseUrl}}"], "path": ["categories", "admin", "all"] } } },
+        {
+          "name": "Admin Create Category",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const json = pm.response.json();", "if (json?.data?.category?._id) pm.collectionVariables.set('categoryId', json.data.category._id);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Category Demo\",\n  \"description\": \"Category created from rebuilt Postman collection\"\n}" },
+            "url": { "raw": "{{baseUrl}}/categories", "host": ["{{baseUrl}}"], "path": ["categories"] }
+          }
+        },
+        {
+          "name": "Admin Update Category",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Category Demo Updated\",\n  \"description\": \"Updated from Postman\",\n  \"isActive\": true\n}" },
+            "url": { "raw": "{{baseUrl}}/categories/{{categoryId}}", "host": ["{{baseUrl}}"], "path": ["categories", "{{categoryId}}"] }
+          }
+        },
+        {
+          "name": "Admin Upload Category Image",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }],
+            "body": { "mode": "formdata", "formdata": [{ "key": "image", "type": "file", "src": "" }] },
+            "url": { "raw": "{{baseUrl}}/categories/{{categoryId}}/image", "host": ["{{baseUrl}}"], "path": ["categories", "{{categoryId}}", "image"] }
+          }
+        },
+        { "name": "Admin Delete Category", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }], "url": { "raw": "{{baseUrl}}/categories/{{categoryId}}", "host": ["{{baseUrl}}"], "path": ["categories", "{{categoryId}}"] } } }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        { "name": "Get Products", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/products?page=1&limit=12", "host": ["{{baseUrl}}"], "path": ["products"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "12" }] } } },
+        { "name": "Get Featured Products", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/products/featured", "host": ["{{baseUrl}}"], "path": ["products", "featured"] } } },
+        { "name": "Get Product By Slug", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/products/slug/sample-product", "host": ["{{baseUrl}}"], "path": ["products", "slug", "sample-product"] } } },
+        { "name": "Get Product By Id", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["products", "{{productId}}"] } } },
+        {
+          "name": "Add Product Review",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerAccessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"rating\": 5,\n  \"comment\": \"Great product\"\n}" },
+            "url": { "raw": "{{baseUrl}}/products/{{productId}}/reviews", "host": ["{{baseUrl}}"], "path": ["products", "{{productId}}", "reviews"] }
+          }
+        },
+        { "name": "Admin Get All Products", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }], "url": { "raw": "{{baseUrl}}/products/admin/all?page=1&limit=20", "host": ["{{baseUrl}}"], "path": ["products", "admin", "all"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }] } } },
+        { "name": "Admin Get Product Stats", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }], "url": { "raw": "{{baseUrl}}/products/admin/stats", "host": ["{{baseUrl}}"], "path": ["products", "admin", "stats"] } } },
+        {
+          "name": "Admin Create Product",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const json = pm.response.json();", "if (json?.data?.product?._id) pm.collectionVariables.set('productId', json.data.product._id);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Product Demo\",\n  \"description\": \"Product created from rebuilt Postman collection\",\n  \"price\": 100000,\n  \"comparePrice\": 120000,\n  \"category\": \"{{categoryId}}\",\n  \"stock\": 10,\n  \"brand\": \"Demo Brand\",\n  \"tags\": [\"demo\", \"postman\"],\n  \"isFeatured\": false\n}" },
+            "url": { "raw": "{{baseUrl}}/products", "host": ["{{baseUrl}}"], "path": ["products"] }
+          }
+        },
+        {
+          "name": "Admin Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Product Demo Updated\",\n  \"price\": 110000,\n  \"stock\": 12,\n  \"isFeatured\": true,\n  \"isActive\": true\n}" },
+            "url": { "raw": "{{baseUrl}}/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["products", "{{productId}}"] }
+          }
+        },
+        {
+          "name": "Admin Upload Product Images",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const json = pm.response.json();",
+            "if (json?.data?.images?.[0]?._id) pm.collectionVariables.set('imageId', json.data.images[0]._id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }],
+            "body": { "mode": "formdata", "formdata": [{ "key": "images", "type": "file", "src": "" }] },
+            "url": { "raw": "{{baseUrl}}/products/{{productId}}/images", "host": ["{{baseUrl}}"], "path": ["products", "{{productId}}", "images"] }
+          }
+        },
+        { "name": "Admin Set Main Product Image", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }], "url": { "raw": "{{baseUrl}}/products/{{productId}}/images/{{imageId}}/main", "host": ["{{baseUrl}}"], "path": ["products", "{{productId}}", "images", "{{imageId}}", "main"] } } },
+        { "name": "Admin Delete Product Image", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }], "url": { "raw": "{{baseUrl}}/products/{{productId}}/images/{{imageId}}", "host": ["{{baseUrl}}"], "path": ["products", "{{productId}}", "images", "{{imageId}}"] } } },
+        { "name": "Admin Delete Product", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }], "url": { "raw": "{{baseUrl}}/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["products", "{{productId}}"] } } }
+      ]
+    },
+    {
+      "name": "Cart",
+      "item": [
+        { "name": "Get Cart", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{customerAccessToken}}" }], "url": { "raw": "{{baseUrl}}/cart", "host": ["{{baseUrl}}"], "path": ["cart"] } } },
+        { "name": "Get Cart Count", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{customerAccessToken}}" }], "url": { "raw": "{{baseUrl}}/cart/count", "host": ["{{baseUrl}}"], "path": ["cart", "count"] } } },
+        { "name": "Add To Cart", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{customerAccessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 1\n}" }, "url": { "raw": "{{baseUrl}}/cart/items", "host": ["{{baseUrl}}"], "path": ["cart", "items"] } } },
+        { "name": "Update Cart Item", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{customerAccessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"quantity\": 2\n}" }, "url": { "raw": "{{baseUrl}}/cart/items/{{productId}}", "host": ["{{baseUrl}}"], "path": ["cart", "items", "{{productId}}"] } } },
+        { "name": "Remove From Cart", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{customerAccessToken}}" }], "url": { "raw": "{{baseUrl}}/cart/items/{{productId}}", "host": ["{{baseUrl}}"], "path": ["cart", "items", "{{productId}}"] } } },
+        { "name": "Clear Cart", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{customerAccessToken}}" }], "url": { "raw": "{{baseUrl}}/cart", "host": ["{{baseUrl}}"], "path": ["cart"] } } }
+      ]
+    },
+    {
+      "name": "Wishlist",
+      "item": [
+        { "name": "Get Wishlist", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{customerAccessToken}}" }], "url": { "raw": "{{baseUrl}}/wishlist", "host": ["{{baseUrl}}"], "path": ["wishlist"] } } },
+        { "name": "Add To Wishlist", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{customerAccessToken}}" }], "url": { "raw": "{{baseUrl}}/wishlist/{{productId}}", "host": ["{{baseUrl}}"], "path": ["wishlist", "{{productId}}"] } } },
+        { "name": "Remove From Wishlist", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{customerAccessToken}}" }], "url": { "raw": "{{baseUrl}}/wishlist/{{productId}}", "host": ["{{baseUrl}}"], "path": ["wishlist", "{{productId}}"] } } }
+      ]
+    },
+    {
+      "name": "Coupons",
+      "item": [
+        { "name": "Apply Coupon", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{customerAccessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"code\": \"SALE10\",\n  \"orderAmount\": 500000\n}" }, "url": { "raw": "{{baseUrl}}/coupons/apply", "host": ["{{baseUrl}}"], "path": ["coupons", "apply"] } } },
+        { "name": "Validate Coupon", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{customerAccessToken}}" }], "url": { "raw": "{{baseUrl}}/coupons/validate/SALE10?orderAmount=500000", "host": ["{{baseUrl}}"], "path": ["coupons", "validate", "SALE10"], "query": [{ "key": "orderAmount", "value": "500000" }] } } },
+        { "name": "Admin Get Coupons", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }], "url": { "raw": "{{baseUrl}}/coupons", "host": ["{{baseUrl}}"], "path": ["coupons"] } } },
+        {
+          "name": "Admin Create Coupon",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const json = pm.response.json();", "if (json?.data?.coupon?._id) pm.collectionVariables.set('couponId', json.data.coupon._id);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"code\": \"SALE10\",\n  \"discountType\": \"percentage\",\n  \"discountValue\": 10,\n  \"minOrderValue\": 100000,\n  \"maxDiscount\": 50000,\n  \"oncePerUser\": true,\n  \"startDate\": \"2026-01-01T00:00:00.000Z\",\n  \"endDate\": \"2026-12-31T23:59:59.000Z\",\n  \"usageLimit\": 100,\n  \"status\": \"active\"\n}" },
+            "url": { "raw": "{{baseUrl}}/coupons", "host": ["{{baseUrl}}"], "path": ["coupons"] }
+          }
+        },
+        { "name": "Admin Update Coupon", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"discountValue\": 15,\n  \"status\": \"active\"\n}" }, "url": { "raw": "{{baseUrl}}/coupons/{{couponId}}", "host": ["{{baseUrl}}"], "path": ["coupons", "{{couponId}}"] } } },
+        { "name": "Admin Delete Coupon", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }], "url": { "raw": "{{baseUrl}}/coupons/{{couponId}}", "host": ["{{baseUrl}}"], "path": ["coupons", "{{couponId}}"] } } }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Create COD Order",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const json = pm.response.json();", "if (json?.data?.order?._id) pm.collectionVariables.set('orderId', json.data.order._id);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerAccessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"shippingAddress\": {\n    \"fullName\": \"Customer Demo\",\n    \"phone\": \"0901234567\",\n    \"street\": \"123 Nguyen Hue\",\n    \"city\": \"Ho Chi Minh\",\n    \"country\": \"Vietnam\",\n    \"latitude\": 10.7769,\n    \"longitude\": 106.7009\n  },\n  \"paymentMethod\": \"cod\",\n  \"note\": \"Test order from Postman\",\n  \"checkoutRequestKey\": \"postman-cod-001\"\n}" },
+            "url": { "raw": "{{baseUrl}}/orders", "host": ["{{baseUrl}}"], "path": ["orders"] }
+          }
+        },
+        { "name": "Get My Orders", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{customerAccessToken}}" }], "url": { "raw": "{{baseUrl}}/orders/my-orders?page=1&limit=10", "host": ["{{baseUrl}}"], "path": ["orders", "my-orders"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] } } },
+        { "name": "Get Order By Id", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{customerAccessToken}}" }], "url": { "raw": "{{baseUrl}}/orders/{{orderId}}", "host": ["{{baseUrl}}"], "path": ["orders", "{{orderId}}"] } } },
+        { "name": "Cancel Order", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{customerAccessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Change of mind\"\n}" }, "url": { "raw": "{{baseUrl}}/orders/{{orderId}}/cancel", "host": ["{{baseUrl}}"], "path": ["orders", "{{orderId}}", "cancel"] } } },
+        { "name": "Admin Get All Orders", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }], "url": { "raw": "{{baseUrl}}/orders/admin/all?page=1&limit=20", "host": ["{{baseUrl}}"], "path": ["orders", "admin", "all"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }] } } },
+        { "name": "Admin Get Order Stats", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }], "url": { "raw": "{{baseUrl}}/orders/admin/stats", "host": ["{{baseUrl}}"], "path": ["orders", "admin", "stats"] } } },
+        { "name": "Admin Get Revenue Report", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }], "url": { "raw": "{{baseUrl}}/orders/admin/revenue?period=daily&days=30", "host": ["{{baseUrl}}"], "path": ["orders", "admin", "revenue"], "query": [{ "key": "period", "value": "daily" }, { "key": "days", "value": "30" }] } } },
+        { "name": "Admin Update Order Status", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"status\": \"confirmed\",\n  \"note\": \"Confirmed from Postman\"\n}" }, "url": { "raw": "{{baseUrl}}/orders/{{orderId}}/status", "host": ["{{baseUrl}}"], "path": ["orders", "{{orderId}}", "status"] } } },
+        { "name": "Admin Update Payment Status", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"paymentStatus\": \"paid\",\n  \"transactionId\": \"MANUAL-001\"\n}" }, "url": { "raw": "{{baseUrl}}/orders/{{orderId}}/payment", "host": ["{{baseUrl}}"], "path": ["orders", "{{orderId}}", "payment"] } } }
+      ]
+    },
+    {
+      "name": "Payment",
+      "item": [
+        {
+          "name": "Create MoMo Payment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerAccessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"shippingAddress\": {\n    \"fullName\": \"Customer Demo\",\n    \"phone\": \"0901234567\",\n    \"street\": \"123 Nguyen Hue\",\n    \"city\": \"Ho Chi Minh\",\n    \"country\": \"Vietnam\",\n    \"latitude\": 10.7769,\n    \"longitude\": 106.7009\n  },\n  \"paymentMethod\": \"momo\",\n  \"checkoutRequestKey\": \"postman-momo-001\"\n}" },
+            "url": { "raw": "{{baseUrl}}/payment/momo/create", "host": ["{{baseUrl}}"], "path": ["payment", "momo", "create"] }
+          }
+        },
+        { "name": "Verify MoMo Payment", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{customerAccessToken}}" }], "url": { "raw": "{{baseUrl}}/payment/momo/verify?momoOrderId={{paymentOrderId}}", "host": ["{{baseUrl}}"], "path": ["payment", "momo", "verify"], "query": [{ "key": "momoOrderId", "value": "{{paymentOrderId}}" }] } } },
+        { "name": "MoMo IPN Callback", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"orderId\": \"{{paymentOrderId}}\",\n  \"resultCode\": 0\n}" }, "url": { "raw": "{{baseUrl}}/payment/momo/ipn", "host": ["{{baseUrl}}"], "path": ["payment", "momo", "ipn"] } } }
+      ]
+    },
+    {
+      "name": "Support",
+      "item": [
+        {
+          "name": "Get My Support Conversation",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const json = pm.response.json();", "if (json?.data?.conversation?._id) pm.collectionVariables.set('conversationId', json.data.conversation._id);"] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{customerAccessToken}}" }], "url": { "raw": "{{baseUrl}}/support/me", "host": ["{{baseUrl}}"], "path": ["support", "me"] } }
+        },
+        { "name": "Get User Support Messages", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{customerAccessToken}}" }], "url": { "raw": "{{baseUrl}}/support/conversations/{{conversationId}}/messages", "host": ["{{baseUrl}}"], "path": ["support", "conversations", "{{conversationId}}", "messages"] } } },
+        { "name": "Send User Support Message", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{customerAccessToken}}" }], "body": { "mode": "formdata", "formdata": [{ "key": "text", "value": "Need support with my order", "type": "text" }, { "key": "attachments", "type": "file", "src": "" }] }, "url": { "raw": "{{baseUrl}}/support/conversations/{{conversationId}}/messages", "host": ["{{baseUrl}}"], "path": ["support", "conversations", "{{conversationId}}", "messages"] } } },
+        { "name": "Mark User Conversation Read", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{customerAccessToken}}" }], "url": { "raw": "{{baseUrl}}/support/conversations/{{conversationId}}/read", "host": ["{{baseUrl}}"], "path": ["support", "conversations", "{{conversationId}}", "read"] } } },
+        { "name": "Admin Get Support Conversations", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }], "url": { "raw": "{{baseUrl}}/support/admin/conversations", "host": ["{{baseUrl}}"], "path": ["support", "admin", "conversations"] } } },
+        { "name": "Admin Get Support Messages", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }], "url": { "raw": "{{baseUrl}}/support/admin/conversations/{{conversationId}}/messages", "host": ["{{baseUrl}}"], "path": ["support", "admin", "conversations", "{{conversationId}}", "messages"] } } },
+        { "name": "Admin Send Support Message", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }], "body": { "mode": "formdata", "formdata": [{ "key": "text", "value": "Admin support response", "type": "text" }, { "key": "attachments", "type": "file", "src": "" }] }, "url": { "raw": "{{baseUrl}}/support/admin/conversations/{{conversationId}}/messages", "host": ["{{baseUrl}}"], "path": ["support", "admin", "conversations", "{{conversationId}}", "messages"] } } },
+        { "name": "Admin Mark Conversation Read", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }], "url": { "raw": "{{baseUrl}}/support/admin/conversations/{{conversationId}}/read", "host": ["{{baseUrl}}"], "path": ["support", "admin", "conversations", "{{conversationId}}", "read"] } } },
+        { "name": "Admin Update Conversation Status", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"status\": \"closed\"\n}" }, "url": { "raw": "{{baseUrl}}/support/admin/conversations/{{conversationId}}/status", "host": ["{{baseUrl}}"], "path": ["support", "admin", "conversations", "{{conversationId}}", "status"] } } },
+        { "name": "Admin Delete Conversation", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }], "url": { "raw": "{{baseUrl}}/support/admin/conversations/{{conversationId}}", "host": ["{{baseUrl}}"], "path": ["support", "admin", "conversations", "{{conversationId}}"] } } }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const json = pm.response.json();",
+            "if (json?.data?.[0]?._id) pm.collectionVariables.set('notificationId', json.data[0]._id);"
+          ] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{activeAccessToken}}" }], "url": { "raw": "{{baseUrl}}/notifications", "host": ["{{baseUrl}}"], "path": ["notifications"] } }
+        },
+        { "name": "Mark All Notifications Read", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{activeAccessToken}}" }], "url": { "raw": "{{baseUrl}}/notifications/read-all", "host": ["{{baseUrl}}"], "path": ["notifications", "read-all"] } } },
+        { "name": "Mark Notification Read", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{activeAccessToken}}" }], "url": { "raw": "{{baseUrl}}/notifications/{{notificationId}}/read", "host": ["{{baseUrl}}"], "path": ["notifications", "{{notificationId}}", "read"] } } },
+        { "name": "Delete Notification", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{activeAccessToken}}" }], "url": { "raw": "{{baseUrl}}/notifications/{{notificationId}}", "host": ["{{baseUrl}}"], "path": ["notifications", "{{notificationId}}"] } } }
+      ]
+    },
+    {
+      "name": "Users Admin",
+      "item": [
+        { "name": "Get User Stats", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }], "url": { "raw": "{{baseUrl}}/users/stats", "host": ["{{baseUrl}}"], "path": ["users", "stats"] } } },
+        { "name": "Check User Status", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }], "url": { "raw": "{{baseUrl}}/users/check/{{customerEmail}}", "host": ["{{baseUrl}}"], "path": ["users", "check", "{{customerEmail}}"] } } },
+        { "name": "Get Shipper Applications", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }], "url": { "raw": "{{baseUrl}}/users/shipper-applications?status=all", "host": ["{{baseUrl}}"], "path": ["users", "shipper-applications"], "query": [{ "key": "status", "value": "all" }] } } },
+        { "name": "Approve Shipper Application", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }], "url": { "raw": "{{baseUrl}}/users/shipper-applications/{{userId}}/approve", "host": ["{{baseUrl}}"], "path": ["users", "shipper-applications", "{{userId}}", "approve"] } } },
+        { "name": "Reject Shipper Application", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }], "url": { "raw": "{{baseUrl}}/users/shipper-applications/{{userId}}/reject", "host": ["{{baseUrl}}"], "path": ["users", "shipper-applications", "{{userId}}", "reject"] } } },
+        { "name": "Get Users", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }], "url": { "raw": "{{baseUrl}}/users?page=1&limit=10", "host": ["{{baseUrl}}"], "path": ["users"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] } } },
+        { "name": "Get User By Id", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }], "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] } } },
+        { "name": "Update User", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Customer Demo Admin Updated\",\n  \"phone\": \"0987654321\",\n  \"isActive\": true\n}" }, "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] } } },
+        { "name": "Delete User", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }], "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] } } }
+      ]
+    },
+    {
+      "name": "Upload Admin",
+      "item": [
+        {
+          "name": "Upload Single Image",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const json = pm.response.json();",
+            "if (json?.data?.publicId) pm.collectionVariables.set('imagePublicId', json.data.publicId);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }],
+            "body": { "mode": "formdata", "formdata": [{ "key": "image", "type": "file", "src": "" }] },
+            "url": { "raw": "{{baseUrl}}/upload/single", "host": ["{{baseUrl}}"], "path": ["upload", "single"] }
+          }
+        },
+        {
+          "name": "Upload Multiple Images",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }],
+            "body": { "mode": "formdata", "formdata": [{ "key": "images", "type": "file", "src": "" }] },
+            "url": { "raw": "{{baseUrl}}/upload/multiple", "host": ["{{baseUrl}}"], "path": ["upload", "multiple"] }
+          }
+        },
+        { "name": "Delete Uploaded Image", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }], "url": { "raw": "{{baseUrl}}/upload/{{imagePublicId}}", "host": ["{{baseUrl}}"], "path": ["upload", "{{imagePublicId}}"] } } }
+      ]
+    }
+  ]
+}

@@ -4,16 +4,11 @@ import {
   UserCircleIcon, 
   EnvelopeIcon, 
   PhoneIcon, 
-  ShieldCheckIcon, 
-  ShieldExclamationIcon,
   CalendarDaysIcon,
-  TagIcon,
-  SignalIcon
+  TagIcon
 } from '@heroicons/react/24/outline';
-import { useI18n } from '../../i18n';
 
 const UserDetailModal = ({ isOpen, onClose, user }) => {
-  const { t } = useI18n();
   if (!isOpen || !user) return null;
 
   const formatDate = (dateString) => {

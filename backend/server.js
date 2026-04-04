@@ -13,18 +13,18 @@ const path = require('path');
 dotenv.config();
 
 // Import routes
-const auth = require('./routes/auth');
-const user = require('./routes/user');
-const product = require('./routes/product');
-const category = require('./routes/category');
-const cart = require('./routes/cart');
-const order = require('./routes/order');
-const upload = require('./routes/upload');
-const wishlist = require('./routes/wishlist');
-const support = require('./routes/support');
-const payment = require('./routes/payment');
-const coupon = require('./routes/coupon');
-const notification = require('./routes/notification');
+const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/user');
+const productRoutes = require('./routes/product');
+const categoryRoutes = require('./routes/category');
+const cartRoutes = require('./routes/cart');
+const orderRoutes = require('./routes/order');
+const uploadRoutes = require('./routes/upload');
+const wishlistRoutes = require('./routes/wishlist');
+const supportRoutes = require('./routes/support');
+const paymentRoutes = require('./routes/payment');
+const couponRoutes = require('./routes/coupon');
+const notificationRoutes = require('./routes/notification');
 
 // Import middleware
 const error = require('./middleware/error');
@@ -132,18 +132,18 @@ mongoose.connection.on('disconnected', () => {
 /* =======================
    API Routes
 ======================= */
-app.use('/api/auth', auth);
-app.use('/api/users', user);
-app.use('/api/products', product);
-app.use('/api/categories', category);
-app.use('/api/cart', cart);
-app.use('/api/orders', order);
-app.use('/api/upload', upload);
-app.use('/api/wishlist', wishlist);
-app.use('/api/support', support);
-app.use('/api/payment', payment);
-app.use('/api/coupons', coupon);
-app.use('/api/notifications', notification);
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/support', supportRoutes);
+app.use('/api/payment', paymentRoutes);
+app.use('/api/coupons', couponRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 /* =======================
    Health Check

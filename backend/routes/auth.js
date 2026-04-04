@@ -34,7 +34,7 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     success: false,
-    message: 'Too many authentication attempts. Please try again later.',
+    message: 'Bạn đã thử xác thực quá nhiều lần. Vui lòng thử lại sau.',
   },
 });
 

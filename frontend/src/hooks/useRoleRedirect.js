@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getMe } from '../store/slices/authSlice';
+import { isAdminUser } from '../utils/roleRedirect';
 
 const useRoleRedirect = () => {
   const dispatch = useDispatch();
@@ -11,13 +12,13 @@ const useRoleRedirect = () => {
 
   useEffect(() => {
     if (initialized && isAuthenticated && user) {
-      // Redirect based on role if user is on homepage or login page
       const isOnHomePage = location.pathname === '/';
       const isOnLoginPage = location.pathname === '/login';
       const isOnRegisterPage = location.pathname === '/register';
+      const isOnAdminRoute = location.pathname.startsWith('/admin');
       
-      if (isOnHomePage || isOnLoginPage || isOnRegisterPage) {
-        // No longer redirecting based on role. Users stay on the homepage.
+      if (isAdminUser(user) && !isOnAdminRoute && (isOnHomePage || isOnLoginPage || isOnRegisterPage)) {
+        navigate('/admin', { replace: true });
       }
     }
   }, [user, isAuthenticated, initialized, navigate, location.pathname]);

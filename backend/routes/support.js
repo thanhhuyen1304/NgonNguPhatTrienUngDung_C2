@@ -28,7 +28,7 @@ const customerOnly = (req, res, next) => {
 
   return res.status(403).json({
     success: false,
-    message: 'Only customers can access this support channel',
+    message: 'Chỉ khách hàng mới có thể sử dụng kênh hỗ trợ này',
   });
 };
 

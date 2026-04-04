@@ -1,16 +1,17 @@
 import { useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { logout } from '../../store/slices/authSlice';
-import Header from '../common/Header';
-import { ChartBarIcon, ShoppingBagIcon, TagIcon, TicketIcon, ClipboardDocumentListIcon, UsersIcon, ChatBubbleLeftRightIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { clearSessionState, logout } from '../../store/slices/authSlice';
+import { clearNotifications } from '../../store/slices/notificationSlice';
+import { ChartBarIcon, ShoppingBagIcon, TagIcon, TicketIcon, ClipboardDocumentListIcon, UsersIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
+import socketService from '../../services/socketService';
 
 const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
+  useSelector((state) => state.auth);
 
   const navigation = [
     {
@@ -50,12 +51,19 @@ const AdminLayout = () => {
     },
   ];
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     const result = window.confirm('🚪 Đăng xuất khỏi hệ thống\n\nBạn có chắc chắn muốn đăng xuất không?\n\n• Phiên làm việc hiện tại sẽ kết thúc\n• Bạn sẽ cần đăng nhập lại để tiếp tục\n• Các thay đổi chưa lưu có thể bị mất');
 
     if (result) {
-      dispatch(logout());
-      navigate('/login');
+      socketService.disconnect();
+      dispatch(clearNotifications());
+      dispatch(clearSessionState());
+      navigate('/login', { replace: true });
+
+      try {
+        await dispatch(logout()).unwrap();
+      } catch {
+      }
     }
   };
 
@@ -66,15 +74,22 @@ const AdminLayout = () => {
     return location.pathname.startsWith(path);
   };
 
-  const getPageTitle = () => {
-    const currentNav = navigation.find(nav => isActive(nav.href));
-    return currentNav ? currentNav.name : 'Bảng điều khiển';
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header onSidebarToggle={() => setSidebarOpen(true)} />
-      
+      {/* Mobile top bar (no Header) */}
+      <div className="lg:hidden flex items-center bg-white border-b border-gray-200 px-4 h-14 sticky top-0 z-50">
+        <button
+          type="button"
+          className="p-2 text-gray-500 hover:text-gray-700 focus:outline-none"
+          onClick={() => setSidebarOpen(true)}
+        >
+          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <span className="ml-3 text-lg font-semibold text-gray-800">Admin Dashboard</span>
+      </div>
+
       <div className="flex-1 relative">
         {/* Sidebars and Content overlay container */}
       {/* Mobile sidebar backdrop */}
@@ -89,7 +104,6 @@ const AdminLayout = () => {
       <div
         className={`fixed inset-y-0 left-0 z-50 w-64 transform bg-white shadow-lg transition-transform duration-300 ease-in-out lg:hidden ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
-        style={{ top: '64px' }}
       >
         <div className="flex h-full flex-col">
           {/* Mobile Navigation */}
@@ -139,7 +153,6 @@ const AdminLayout = () => {
       {/* Desktop sidebar */}
       <div
         className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col"
-        style={{ top: '64px' }}
       >
         <div className="flex min-h-0 flex-1 flex-col bg-white border-r border-gray-200">
           {/* Desktop Navigation */}

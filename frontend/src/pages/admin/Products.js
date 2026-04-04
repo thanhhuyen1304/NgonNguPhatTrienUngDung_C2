@@ -1,8 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../../i18n';
-import api from '../../services/api';
 import toast from 'react-hot-toast';
+import {
+  deleteAdminProduct,
+  getAdminProductCategories,
+  getAdminProducts,
+} from '../../services/adminProductService';
 import { 
   PlusIcon, 
   PencilIcon, 
@@ -12,7 +16,6 @@ import {
   ArchiveBoxIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
-  TrophyIcon,
   PhotoIcon
 } from '@heroicons/react/24/outline';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
@@ -38,8 +41,8 @@ const AdminProducts = () => {
 
   const fetchCategories = useCallback(async () => {
     try {
-      const response = await api.get('/categories');
-      setCategories(response.data.data.categories || []);
+      const categoryList = await getAdminProductCategories();
+      setCategories(categoryList);
     } catch (error) {
       console.error('Error fetching categories:', error);
     }
@@ -48,16 +51,13 @@ const AdminProducts = () => {
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams({
+      const data = await getAdminProducts({
         page,
-        limit: 15, // Slightly lower limit for better performance/layout
-        ...(search && { search }),
-        ...(category && { category }),
+        search,
+        category,
       });
-
-      const response = await api.get(`/products/admin/all?${params}`);
-      setProducts(response.data.data.products);
-      setTotalPages(response.data.data.pagination.pages || 1);
+      setProducts(data.products);
+      setTotalPages(data.totalPages);
     } catch (error) {
       toast.error(`${t('common.error')}: Không thể tải danh sách sản phẩm`);
     } finally {
@@ -90,7 +90,7 @@ const AdminProducts = () => {
     if (!productToDelete) return;
 
     try {
-      await api.delete(`/products/${productToDelete._id}`);
+      await deleteAdminProduct(productToDelete._id);
       toast.success(t('adminProducts.deletedSuccess'));
       setIsDeleteOpen(false);
       setProductToDelete(null);

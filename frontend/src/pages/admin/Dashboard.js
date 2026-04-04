@@ -1,6 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import api from '../../services/api';
 import toast from 'react-hot-toast';
+import {
+  getDashboardStats,
+  getDefaultDashboardStats,
+} from '../../services/adminDashboardService';
 import { 
   ShoppingCartIcon, 
   CurrencyDollarIcon, 
@@ -22,29 +25,12 @@ const AdminDashboard = () => {
   const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
-      const [statsRes, productsRes] = await Promise.all([
-        api.get('/orders/admin/stats').catch(err => {
-          console.error('Orders stats error:', err);
-          return { data: { data: { summary: { totalOrders: 0, totalRevenue: 0 }, statusCounts: [] } } };
-        }),
-        api.get('/products/admin/stats').catch(err => {
-          console.error('Products stats error:', err);
-          return { data: { data: { totalProducts: 0, activeProducts: 0, featuredProducts: 0, outOfStock: 0, lowStock: 0, topSelling: [], productsByCategory: [] } } };
-        }),
-      ]);
-
-      setStats({
-        orders: statsRes.data.data,
-        products: productsRes.data.data,
-      });
+      const dashboardStats = await getDashboardStats();
+      setStats(dashboardStats);
     } catch (error) {
       console.error('Dashboard fetch error:', error);
       toast.error('Không thể tải dữ liệu dashboard');
-      // Set default stats to prevent crashes
-      setStats({
-        orders: { summary: { totalOrders: 0, totalRevenue: 0 }, statusCounts: [] },
-        products: { totalProducts: 0, activeProducts: 0, featuredProducts: 0, outOfStock: 0, lowStock: 0, topSelling: [], productsByCategory: [] }
-      });
+      setStats(getDefaultDashboardStats());
     } finally {
       setLoading(false);
     }

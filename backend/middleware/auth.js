@@ -94,6 +94,17 @@ const admin = (req, res, next) => {
   }
 };
 
+const customerOnly = (req, res, next) => {
+  if (req.user && req.user.role === 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Quản trị viên chỉ được phép hoạt động trong dashboard'
+    });
+  }
+
+  next();
+};
+
 // Shipper middleware
 const shipper = (req, res, next) => {
   if (req.user && req.user.role === 'shipper') {
@@ -149,6 +160,7 @@ const verifyRefreshToken = (token) => {
 module.exports = {
   protect,
   admin,
+  customerOnly,
   shipper,
   optionalAuth,
   generateAccessToken,

@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   BellIcon,
   CheckIcon,
-  TrashIcon,
   ShoppingBagIcon,
   ChatBubbleLeftRightIcon,
   InformationCircleIcon
@@ -19,7 +18,7 @@ const NotificationBell = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const { notifications, unreadCount, loading } = useSelector((state) => state.notifications);
+  const { notifications, unreadCount } = useSelector((state) => state.notifications);
   const { user } = useSelector((state) => state.auth);
 
   useEffect(() => {
