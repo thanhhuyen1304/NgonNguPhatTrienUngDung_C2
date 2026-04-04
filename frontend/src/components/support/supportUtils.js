@@ -66,13 +66,13 @@ export const normalizeAttachment = (attachment, index = 0) => {
   }
 
   if (typeof attachment === 'string') {
-    return {
-      id: `${attachment}-${index}`,
-      url: attachment,
-      originalName: 'Attachment',
-      mimeType: '',
-      isImage: isImageUrl(attachment),
-    };
+      return {
+        id: `${attachment}-${index}`,
+        url: attachment,
+        originalName: 'Tệp đính kèm',
+        mimeType: '',
+        isImage: isImageUrl(attachment),
+      };
   }
 
   const url = attachment.url || attachment.secure_url || attachment.path || '';
@@ -82,7 +82,7 @@ export const normalizeAttachment = (attachment, index = 0) => {
     ...attachment,
     id: attachment._id || attachment.id || `${url}-${index}`,
     url,
-    originalName: attachment.originalName || attachment.name || 'Attachment',
+    originalName: attachment.originalName || attachment.name || 'Tệp đính kèm',
     mimeType,
     isImage: isImageUrl(url, mimeType),
   };
@@ -134,7 +134,7 @@ export const normalizeMessage = (message) => {
     sender,
     senderId: sender?._id || message.senderId || message.sender || null,
     senderRole,
-    senderName: sender?.name || message.senderName || (senderRole === 'admin' ? 'Support' : 'Khách hàng'),
+    senderName: sender?.name || message.senderName || (senderRole === 'admin' ? 'Hỗ trợ' : 'Khách hàng'),
     text: message.text || message.message || message.content || '',
     attachments,
     createdAt,

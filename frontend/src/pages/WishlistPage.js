@@ -31,12 +31,12 @@ const WishlistPage = () => {
   };
 
   const handleAddToCart = async (product) => {
-    try {
-      await dispatch(addToCart({ productId: product._id, quantity: 1 })).unwrap();
-      toast.success(t('wishlist.addedToCart'));
-    } catch (error) {
-      toast.error(error || 'Failed to add to cart');
-    }
+      try {
+        await dispatch(addToCart({ productId: product._id, quantity: 1 })).unwrap();
+        toast.success(t('wishlist.addedToCart'));
+      } catch (error) {
+        toast.error(error?.message || 'Không thể thêm vào giỏ hàng');
+      }
   };
 
   if (loading && items.length === 0) {
@@ -72,7 +72,7 @@ const WishlistPage = () => {
               <div className="text-center md:text-left">
                 <p className="text-sm font-medium text-gray-600 mb-2">{t('wishlist.totalItems')}</p>
                 <p className="text-4xl font-bold text-blue-600">{items.length}</p>
-                <p className="text-sm text-gray-600 mt-1">{items.length === 1 ? 'item' : 'items'} in your wishlist</p>
+                <p className="text-sm text-gray-600 mt-1">{items.length} sản phẩm trong danh sách yêu thích</p>
               </div>
               <button
                 onClick={() => navigate('/shop')}

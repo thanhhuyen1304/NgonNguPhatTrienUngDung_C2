@@ -126,7 +126,7 @@ const PaymentResultPage = () => {
           )}
 
           <p className="text-sm text-gray-400 mb-5">
-            Tự động chuyển sang chi tiết đơn hàng sau <span className="font-bold text-gray-600">{countdown}s</span>
+             Tự động chuyển sang chi tiết đơn hàng sau <span className="font-bold text-gray-600">{countdown} giây</span>
           </p>
 
           <div className="flex gap-3">
