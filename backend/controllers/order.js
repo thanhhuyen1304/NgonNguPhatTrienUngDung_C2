@@ -15,9 +15,10 @@ const {
   emitOrderStatusUpdate, 
   emitOrderAssignmentNotification 
 } = require('../socket/socketServer');
+const { validateCoupon, applyCouponToOrder } = require('../services/couponService');
 
 const createOrder = asyncHandler(async (req, res) => {
-  const { shippingAddress, paymentMethod, note, checkoutRequestKey } = req.body;
+  const { shippingAddress, paymentMethod, note, checkoutRequestKey, couponCode } = req.body;
 
   const Cart = require('../schemas/Cart');
   if (checkoutRequestKey) {
@@ -80,6 +81,27 @@ const createOrder = asyncHandler(async (req, res) => {
         });
       }
 
+      let discountAmount = 0;
+      let normalizedCouponCode = null;
+      let validation = null;
+
+      if (couponCode) {
+        validation = await validateCoupon({
+          code: couponCode,
+          userId: req.user._id,
+          orderAmount: cart.totalPrice,
+        });
+
+        if (!validation.valid) {
+          res.status(400);
+          throw new Error(validation.reason);
+        }
+
+        discountAmount = validation.discountAmount;
+        normalizedCouponCode = validation.coupon.code;
+      }
+
+
       const order = new Order({
         user: req.user._id,
         checkoutRequestKey: checkoutRequestKey || null,
@@ -91,10 +113,12 @@ const createOrder = asyncHandler(async (req, res) => {
         },
         paymentMethod: paymentMethod || 'cod',
         note,
+        couponCode: normalizedCouponCode,
+        discountAmount,
         stockCommitted: true,
       });
 
-      order.calculatePrices();
+      order.calculatePrices(undefined, undefined, discountAmount);
       order.statusHistory.push({
         status: 'pending',
         note: 'Order placed',
@@ -102,6 +126,11 @@ const createOrder = asyncHandler(async (req, res) => {
       });
 
       await order.save({ session });
+
+      if (normalizedCouponCode) {
+        await applyCouponToOrder({ coupon: validation.coupon, userId: req.user._id, session });
+      }
+
       await Cart.findOneAndUpdate(
         { user: req.user._id },
         { items: [], totalItems: 0, totalPrice: 0 },

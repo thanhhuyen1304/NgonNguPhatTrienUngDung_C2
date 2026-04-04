@@ -216,6 +216,18 @@ const OrderDetailPage = () => {
                   {order.shippingPrice?.toLocaleString('vi-VN')} ₫
                 </span>
               </div>
+              {order.couponCode && (
+                <div className="flex justify-between text-sm text-green-700">
+                  <span>Coupon</span>
+                  <span className="font-semibold">{order.couponCode}</span>
+                </div>
+              )}
+              {order.discountAmount > 0 && (
+                <div className="flex justify-between text-sm text-green-700">
+                  <span>Discount</span>
+                  <span className="font-semibold">-{order.discountAmount?.toLocaleString('vi-VN')} ₫</span>
+                </div>
+              )}
             </div>
             <div className="flex justify-between mb-4">
               <span className="font-semibold text-gray-900">Tổng tiền:</span>

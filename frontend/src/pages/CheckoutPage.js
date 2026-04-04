@@ -33,6 +33,10 @@ const CheckoutPage = () => {
     note: '',
   });
 
+  const [couponCode, setCouponCode] = useState('');
+  const [couponInfo, setCouponInfo] = useState(null);
+  const [couponError, setCouponError] = useState('');
+  const [isCouponApplying, setIsCouponApplying] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
@@ -47,7 +51,8 @@ const CheckoutPage = () => {
 
   const shippingCost = totalPrice > 500000 ? 0 : 30000;
   const taxPrice = Math.round(totalPrice * 0.1);
-  const finalTotal = totalPrice + shippingCost + taxPrice;
+  const couponDiscount = couponInfo?.discountAmount || 0;
+  const finalTotal = Math.max(0, totalPrice + shippingCost + taxPrice - couponDiscount);
 
   // ── Xử lý MoMo payment ──────────────────────────────────────
   const handleMomoPayment = async (orderData) => {
@@ -66,6 +71,36 @@ const CheckoutPage = () => {
 
     // Redirect sang MoMo payment page
     window.location.href = data.data.payUrl;
+  };
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      setCouponError('Please enter a coupon code');
+      return;
+    }
+
+    setIsCouponApplying(true);
+    setCouponError('');
+
+    try {
+      const response = await api.post('/coupons/apply', {
+        code: couponCode.trim(),
+        orderAmount: totalPrice,
+      });
+      setCouponInfo(response.data.data);
+      toast.success('Coupon applied successfully');
+    } catch (error) {
+      setCouponInfo(null);
+      setCouponError(error.response?.data?.message || 'Coupon could not be applied');
+    } finally {
+      setIsCouponApplying(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setCouponCode('');
+    setCouponInfo(null);
+    setCouponError('');
   };
 
   const handleSubmit = async (e) => {
@@ -214,6 +249,7 @@ const CheckoutPage = () => {
       paymentMethod: formData.paymentMethod,
       note: formData.note,
       checkoutRequestKey: createCheckoutRequestKey(),
+      couponCode: couponInfo?.coupon?.code || null,
     };
 
     try {
@@ -432,6 +468,42 @@ const CheckoutPage = () => {
 
               <hr className="my-4" />
 
+              <div className="space-y-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Coupon code</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value)}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter coupon code"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyCoupon}
+                      disabled={isCouponApplying}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {isCouponApplying ? 'Applying...' : 'Apply'}
+                    </button>
+                  </div>
+                  {couponError && <p className="mt-2 text-sm text-red-600">{couponError}</p>}
+                  {couponInfo && (
+                    <div className="mt-3 rounded-lg bg-green-50 border border-green-100 p-3 text-sm text-green-700">
+                      Coupon applied: <span className="font-semibold">{couponInfo.coupon.code}</span> — saved {formatVND(couponInfo.discountAmount)}.
+                      <button
+                        type="button"
+                        onClick={handleRemoveCoupon}
+                        className="ml-3 text-blue-600 hover:underline"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Totals */}
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
@@ -446,6 +518,12 @@ const CheckoutPage = () => {
                   <span className="text-gray-600">Tax (10%)</span>
                   <span>{formatVND(taxPrice)}</span>
                 </div>
+                {couponDiscount > 0 && (
+                  <div className="flex justify-between text-sm text-green-700">
+                    <span>Coupon discount</span>
+                    <span>-{formatVND(couponDiscount)}</span>
+                  </div>
+                )}
                 <hr className="my-2" />
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total</span>
