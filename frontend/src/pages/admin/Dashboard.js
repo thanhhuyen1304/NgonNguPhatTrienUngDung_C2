@@ -1,6 +1,19 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import { 
+  ShoppingCartIcon, 
+  CurrencyDollarIcon, 
+  CubeIcon, 
+  ExclamationTriangleIcon,
+  PlusIcon,
+  ClipboardDocumentListIcon,
+  UsersIcon,
+  TruckIcon,
+  ChartBarIcon,
+  TagIcon,
+  ArrowPathIcon
+} from '@heroicons/react/24/outline';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
@@ -57,8 +70,8 @@ const AdminDashboard = () => {
   const StatCard = ({ icon, label, value, color, bgColor, trend, trendValue }) => (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
       <div className="flex items-center justify-between mb-4">
-        <div className={`p-3 rounded-xl ${bgColor}`}>
-          <div className="text-2xl">{icon}</div>
+        <div className={`p-3 rounded-xl ${bgColor} bg-opacity-50`}>
+          <div className={`w-6 h-6 ${color}`}>{icon}</div>
         </div>
         {trend && (
           <div className={`flex items-center text-sm font-medium ${trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
@@ -70,8 +83,8 @@ const AdminDashboard = () => {
         )}
       </div>
       <div>
-        <p className="text-gray-600 text-sm font-medium mb-1">{label}</p>
-        <p className={`text-3xl font-bold ${color}`}>{value}</p>
+        <p className="text-gray-500 text-sm font-medium mb-1">{label}</p>
+        <p className="text-3xl font-bold text-gray-900">{value}</p>
       </div>
     </div>
   );
@@ -79,11 +92,11 @@ const AdminDashboard = () => {
   const QuickActionCard = ({ icon, title, description, color, onClick }) => (
     <div 
       onClick={onClick}
-      className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-all duration-200 cursor-pointer group"
+      className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md hover:border-blue-200 transition-all duration-200 cursor-pointer group"
     >
       <div className="flex items-center space-x-4">
-        <div className={`p-3 rounded-lg ${color} group-hover:scale-110 transition-transform`}>
-          <div className="text-xl">{icon}</div>
+        <div className={`p-3 rounded-lg ${color} bg-opacity-10 group-hover:scale-110 transition-transform`}>
+          <div className="w-6 h-6">{icon}</div>
         </div>
         <div>
           <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">{title}</h3>
@@ -94,39 +107,35 @@ const AdminDashboard = () => {
   );
 
   const ProgressBar = ({ percentage, color = 'blue' }) => (
-    <div className="w-full bg-gray-200 rounded-full h-2">
+    <div className="w-full bg-gray-100 rounded-full h-2">
       <div 
-        className={`bg-${color}-600 h-2 rounded-full transition-all duration-500 ease-out`}
+        className={`bg-${color}-500 h-2 rounded-full transition-all duration-500 ease-out`}
         style={{ width: `${percentage}%` }}
       />
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gray-50/50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-gray-900 font-sans">
         {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="mb-4 lg:mb-0">
-              <h1 className="text-4xl font-bold text-gray-900 flex items-center">
-                <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  📊 Dashboard
-                </span>
+              <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+                Dashboard Overview
               </h1>
-              <p className="text-gray-600 mt-2 text-lg">
-                Tổng quan hoạt động cửa hàng và phân tích dữ liệu
+              <p className="text-gray-500 mt-1 text-sm">
+                Track, manage and analyze your store's performance.
               </p>
             </div>
             <div className="flex items-center space-x-3">
               <button
                 onClick={fetchDashboardData}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+                className="inline-flex items-center px-4 py-2 border border-gray-200 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
               >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Làm mới
+                <ArrowPathIcon className="w-4 h-4 mr-2" />
+                Refresh Data
               </button>
             </div>
           </div>
@@ -135,8 +144,8 @@ const AdminDashboard = () => {
         {/* Key Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
-            icon="🛒"
-            label="Tổng đơn hàng"
+            icon={<ShoppingCartIcon />}
+            label="Total Orders"
             value={stats?.orders?.summary?.totalOrders || 0}
             color="text-blue-600"
             bgColor="bg-blue-100"
@@ -144,29 +153,29 @@ const AdminDashboard = () => {
             trendValue="12"
           />
           <StatCard
-            icon="💰"
-            label="Doanh thu"
+            icon={<CurrencyDollarIcon />}
+            label="Total Revenue"
             value={`$${(stats?.orders?.summary?.totalRevenue || 0).toLocaleString('en-US')}`}
-            color="text-green-600"
-            bgColor="bg-green-100"
+            color="text-emerald-600"
+            bgColor="bg-emerald-100"
             trend="up"
             trendValue="8"
           />
           <StatCard
-            icon="📦"
-            label="Tổng sản phẩm"
+            icon={<CubeIcon />}
+            label="Total Products"
             value={stats?.products?.totalProducts || 0}
-            color="text-purple-600"
-            bgColor="bg-purple-100"
+            color="text-indigo-600"
+            bgColor="bg-indigo-100"
             trend="up"
             trendValue="5"
           />
           <StatCard
-            icon="⚠️"
-            label="Hết hàng"
+            icon={<ExclamationTriangleIcon />}
+            label="Out of Stock"
             value={stats?.products?.outOfStock || 0}
-            color="text-red-600"
-            bgColor="bg-red-100"
+            color="text-rose-600"
+            bgColor="bg-rose-100"
             trend="down"
             trendValue="3"
           />
@@ -174,34 +183,34 @@ const AdminDashboard = () => {
 
         {/* Quick Actions */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Thao tác nhanh</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-6">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <QuickActionCard
-              icon="➕"
-              title="Thêm sản phẩm"
-              description="Tạo sản phẩm mới"
-              color="bg-blue-100 text-blue-600"
+              icon={<PlusIcon />}
+              title="Add Product"
+              description="Create new inventory entry"
+              color="text-blue-600"
               onClick={() => window.location.href = '/admin/products/new'}
             />
             <QuickActionCard
-              icon="📋"
-              title="Quản lý đơn hàng"
-              description="Xem và xử lý đơn hàng"
-              color="bg-green-100 text-green-600"
+              icon={<ClipboardDocumentListIcon />}
+              title="Manage Orders"
+              description="Full order processing"
+              color="text-emerald-600"
               onClick={() => window.location.href = '/admin/orders'}
             />
             <QuickActionCard
-              icon="👥"
-              title="Quản lý người dùng"
-              description="Xem danh sách người dùng"
-              color="bg-purple-100 text-purple-600"
+              icon={<UsersIcon />}
+              title="User Management"
+              description="View registered users"
+              color="text-indigo-600"
               onClick={() => window.location.href = '/admin/users'}
             />
             <QuickActionCard
-              icon="🚚"
-              title="Duyệt Shipper"
-              description="Phê duyệt đăng ký shipper"
-              color="bg-orange-100 text-orange-600"
+              icon={<TruckIcon />}
+              title="Shipper Approval"
+              description="Review applications"
+              color="text-orange-600"
               onClick={() => window.location.href = '/admin/shipper-applications'}
             />
           </div>
@@ -211,11 +220,14 @@ const AdminDashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           {/* Products Overview */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-full">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-gray-900">📦 Sản phẩm</h3>
-                <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                  {stats?.products?.totalProducts || 0} tổng
+                <h3 className="text-lg font-bold text-gray-900 flex items-center">
+                  <CubeIcon className="w-5 h-5 mr-2 text-indigo-500" />
+                  Products
+                </h3>
+                <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-semibold">
+                  {stats?.products?.totalProducts || 0} Total
                 </span>
               </div>
               <div className="space-y-4">
@@ -255,11 +267,14 @@ const AdminDashboard = () => {
 
           {/* Top Selling Products */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-full">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-gray-900">🏆 Sản phẩm bán chạy</h3>
-                <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                  Xem tất cả →
+                <h3 className="text-lg font-bold text-gray-900 flex items-center">
+                  <ChartBarIcon className="w-5 h-5 mr-2 text-emerald-500" />
+                  Top Selling Products
+                </h3>
+                <button className="text-blue-600 hover:text-blue-700 text-sm font-semibold">
+                  View All →
                 </button>
               </div>
               <div className="space-y-4">
@@ -293,8 +308,11 @@ const AdminDashboard = () => {
         {/* Products by Category */}
         {stats?.products?.productsByCategory && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-6">🏷️ Sản phẩm theo danh mục</h3>
-            <div className="space-y-4">
+            <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
+              <TagIcon className="w-5 h-5 mr-2 text-rose-500" />
+              Products by Category
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {stats.products.productsByCategory.map((cat, index) => {
                 const maxCount = Math.max(...stats.products.productsByCategory.map((c) => c.count));
                 const percentage = (cat.count / maxCount) * 100;

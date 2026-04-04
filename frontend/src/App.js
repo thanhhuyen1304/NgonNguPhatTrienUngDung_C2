@@ -10,7 +10,6 @@ import useRoleRedirect from './hooks/useRoleRedirect';
 // Layouts
 import MainLayout from './components/layouts/MainLayout';
 import AdminLayout from './components/layouts/AdminLayout';
-import ShipperLayout from './components/layouts/ShipperLayout';
 
 // Public Pages
 import HomePage from './pages/HomePage';
@@ -43,15 +42,9 @@ import AdminUsers from './pages/admin/Users';
 import AdminSupportInbox from './pages/admin/SupportInbox';
 import AdminCoupons from './pages/admin/Coupons';
 
-// Shipper Pages
-import ShipperDashboard from './pages/shipper/Dashboard';
-import ShipperOrders from './pages/shipper/Orders';
-import ShipperRoutePage from './pages/shipper/Route';
-
 // Guards
 import PrivateRoute from './components/guards/PrivateRoute';
 import AdminRoute from './components/guards/AdminRoute';
-import ShipperRoute from './components/guards/ShipperRoute';
 import GuestRoute from './components/guards/GuestRoute';
 
 // Common Components
@@ -64,6 +57,10 @@ function App() {
   
   // Use role redirect hook
   useRoleRedirect();
+
+  useEffect(() => {
+    socketService.setDispatch(dispatch);
+  }, [dispatch]);
 
   useEffect(() => {
     const isGoogleCallbackRoute = location.pathname === '/auth/google/callback';
@@ -143,15 +140,6 @@ function App() {
             <Route path="users" element={<AdminUsers />} />
             <Route path="coupons" element={<AdminCoupons />} />
             <Route path="support" element={<AdminSupportInbox />} />
-          </Route>
-        </Route>
-
-        {/* Shipper Routes */}
-        <Route element={<ShipperRoute />}>
-          <Route path="/shipper" element={<ShipperLayout />}>
-            <Route index element={<ShipperDashboard />} />
-            <Route path="orders" element={<ShipperOrders />} />
-            <Route path="route" element={<ShipperRoutePage />} />
           </Route>
         </Route>
       </Routes>

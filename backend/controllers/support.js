@@ -2,6 +2,7 @@ const asyncHandler = require('express-async-handler');
 const SupportConversation = require('../schemas/SupportConversation');
 const SupportMessage = require('../schemas/SupportMessage');
 const { AppError } = require('../middleware/error');
+const { sendNotification } = require('../socket/socketServer');
 const {
   ensureConversationAccess,
   populateConversation,
@@ -51,6 +52,16 @@ const sendUserMessage = asyncHandler(async (req, res) => {
   });
 
   res.status(201).json({ success: true, data: result });
+
+  // Notify admins of new user support message
+  await sendNotification({
+    recipient: 'admin',
+    title: 'Tin nhắn hỗ trợ mới',
+    message: `Khách hàng ${req.user.name} đã gửi một tin nhắn mới.`,
+    type: 'support',
+    link: `/admin/support/${conversation._id}`,
+    sender: req.user._id
+  });
 });
 
 const markUserConversationRead = asyncHandler(async (req, res) => {
@@ -114,6 +125,16 @@ const sendAdminMessage = asyncHandler(async (req, res) => {
   });
 
   res.status(201).json({ success: true, data: result });
+
+  // Notify user of new admin support message
+  await sendNotification({
+    recipient: conversation.user.toString(),
+    title: 'Phản hồi từ hỗ trợ',
+    message: `Quản trị viên đã phản hồi yêu cầu hỗ trợ của bạn.`,
+    type: 'support',
+    link: `/support`,
+    sender: req.user._id
+  });
 });
 
 const markAdminConversationRead = asyncHandler(async (req, res) => {

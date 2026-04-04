@@ -26,8 +26,6 @@ const CheckoutPage = () => {
     phone: user?.phone || '',
     street: user?.address?.street || '',
     city: user?.address?.city || '',
-    state: user?.address?.state || '',
-    zipCode: user?.address?.zipCode || '',
     country: user?.address?.country || 'Vietnam',
     paymentMethod: 'cod',
     note: '',
@@ -147,7 +145,7 @@ const CheckoutPage = () => {
 
     // 1. Prepare search queries for cascading geocoding
     // Split the address components by comma and clean them
-    const addressParts = [formData.street, formData.city, formData.state, formData.country]
+    const addressParts = [formData.street, formData.city, formData.country]
       .filter(Boolean)
       .flatMap(part => part.split(','))
       .map(part => part.trim())
@@ -180,8 +178,8 @@ const CheckoutPage = () => {
     }
 
     // Q5: Specifically just City/State level fallback
-    if (formData.state || formData.city) {
-      searchQueries.push(`${formData.city || formData.state}, ${formData.country || 'Vietnam'}`);
+    if (formData.city) {
+      searchQueries.push(`${formData.city}, ${formData.country || 'Vietnam'}`);
     }
 
     console.log("Geocoding cascading queries:", searchQueries);
@@ -240,8 +238,6 @@ const CheckoutPage = () => {
         phone: formData.phone,
         street: formData.street,
         city: formData.city,
-        state: formData.state,
-        zipCode: formData.zipCode,
         country: formData.country,
         latitude: lat,
         longitude: lon,
@@ -343,30 +339,7 @@ const CheckoutPage = () => {
                     className="input"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    State/Province
-                  </label>
-                  <input
-                    type="text"
-                    name="state"
-                    value={formData.state}
-                    onChange={handleChange}
-                    className="input"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Zip Code
-                  </label>
-                  <input
-                    type="text"
-                    name="zipCode"
-                    value={formData.zipCode}
-                    onChange={handleChange}
-                    className="input"
-                  />
-                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Country

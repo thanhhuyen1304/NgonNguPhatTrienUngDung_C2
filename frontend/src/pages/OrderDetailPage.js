@@ -155,9 +155,6 @@ const OrderDetailPage = () => {
               <p>
                 {order.shippingAddress.street}, {order.shippingAddress.city}
               </p>
-              <p>
-                {order.shippingAddress.state} {order.shippingAddress.zipCode}
-              </p>
               <p>{order.shippingAddress.country}</p>
             </div>
           </div>

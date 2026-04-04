@@ -2,6 +2,19 @@ import { useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../../store/slices/authSlice';
+import Header from '../common/Header';
+import { 
+  ChartBarIcon, 
+  ShoppingBagIcon, 
+  TagIcon, 
+  TicketIcon, 
+  ClipboardDocumentListIcon, 
+  UsersIcon, 
+  ChatBubbleLeftRightIcon,
+  ArrowLeftOnRectangleIcon,
+  HomeIcon,
+  XMarkIcon
+} from '@heroicons/react/24/outline';
 
 const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -14,65 +27,37 @@ const AdminLayout = () => {
     { 
       name: 'Dashboard', 
       href: '/admin', 
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-        </svg>
-      )
+      icon: <ChartBarIcon className="w-5 h-5" />
     },
     { 
       name: 'Manage Products', 
       href: '/admin/products', 
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-        </svg>
-      )
+      icon: <ShoppingBagIcon className="w-5 h-5" />
     },
     { 
       name: 'Manage Categories', 
       href: '/admin/categories', 
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-        </svg>
-      )
+      icon: <TagIcon className="w-5 h-5" />
     },
     {
       name: 'Manage Coupons',
       href: '/admin/coupons',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h10M7 12h10M7 17h10" />
-        </svg>
-      )
+      icon: <TicketIcon className="w-5 h-5" />
     },
     { 
       name: 'Manage Orders', 
       href: '/admin/orders', 
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-        </svg>
-      )
+      icon: <ClipboardDocumentListIcon className="w-5 h-5" />
     },
     { 
       name: 'Manage Users', 
       href: '/admin/users', 
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-        </svg>
-      )
+      icon: <UsersIcon className="w-5 h-5" />
     },
     {
       name: 'Support Inbox',
       href: '/admin/support',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-4 4v-4z" />
-        </svg>
-      )
+      icon: <ChatBubbleLeftRightIcon className="w-5 h-5" />
     },
   ];
 
@@ -112,6 +97,7 @@ const AdminLayout = () => {
         className={`fixed inset-y-0 left-0 z-50 w-64 transform bg-white shadow-lg transition-transform duration-300 ease-in-out lg:hidden ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
+        style={{ top: '64px' }}
       >
         <div className="flex h-full flex-col">
           {/* Mobile Header */}
@@ -123,9 +109,7 @@ const AdminLayout = () => {
               onClick={() => setSidebarOpen(false)}
               className="p-2 rounded-md text-gray-400 hover:text-gray-600"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <XMarkIcon className="w-6 h-6" />
             </button>
           </div>
 
@@ -173,14 +157,14 @@ const AdminLayout = () => {
       </div>
 
       {/* Desktop sidebar */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
+      <div 
+        className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col"
+        style={{ top: '64px' }}
+      >
         <div className="flex min-h-0 flex-1 flex-col bg-white border-r border-gray-200">
           {/* Desktop Header */}
-          <div className="flex h-16 items-center px-4 border-b border-gray-200">
-            <Link to="/" className="text-xl font-bold text-blue-600">
-              E-commerce
-            </Link>
-          </div>
+          {/* Desktop Header area padding */}
+          <div className="h-4" />
 
           {/* Desktop Navigation */}
           <nav className="flex-1 px-2 py-4 space-y-1">
@@ -215,47 +199,23 @@ const AdminLayout = () => {
               onClick={handleLogout}
               className="flex w-full items-center px-2 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md"
             >
-              <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
+              <ArrowLeftOnRectangleIcon className="w-5 h-5 mr-3" />
               Logout
             </button>
           </div>
         </div>
       </div>
 
-      {/* Main content */}
-      <div className="lg:pl-64">
-        {/* Top bar */}
-        <div className="sticky top-0 z-30 flex h-16 flex-shrink-0 bg-white shadow-sm border-b border-gray-200">
-          <button
-            type="button"
-            className="px-4 text-gray-500 hover:text-gray-700 focus:outline-none lg:hidden"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-          
-          <div className="flex flex-1 justify-between items-center px-4">
-            <div>
-              <h1 className="text-lg font-semibold text-gray-900">{getPageTitle()}</h1>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-500">Loading...</span>
-              <span className="text-sm font-medium text-gray-900">
-                {user?.name || 'Administrator'}
-              </span>
-            </div>
-          </div>
+      {/* Header and Main content area */}
+      <div className="flex flex-col min-h-screen">
+        <Header onSidebarToggle={() => setSidebarOpen(true)} />
+        
+        <div className="flex-1 lg:pl-64">
+          {/* Page content */}
+          <main className="p-6">
+            <Outlet />
+          </main>
         </div>
-
-        {/* Page content */}
-        <main className="p-6">
-          <Outlet />
-        </main>
       </div>
     </div>
   );

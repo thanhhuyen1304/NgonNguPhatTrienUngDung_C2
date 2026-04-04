@@ -22,7 +22,7 @@ const requiredStrongPassword = (field = 'password', label = 'Password') => body(
   .withMessage(strongPasswordMessage);
 
 const optionalMongoId = (field, message) => body(field)
-  .optional()
+  .optional({ checkFalsy: true })
   .isMongoId()
   .withMessage(message);
 

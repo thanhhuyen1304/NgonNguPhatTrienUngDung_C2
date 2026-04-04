@@ -46,15 +46,8 @@ const LoginPage = () => {
       const result = await dispatch(login(formData)).unwrap();
       toast.success('Login successful!');
       
-      // Role-based redirection
-      if (result.role === 'admin') {
-        navigate('/admin', { replace: true });
-      } else if (result.role === 'shipper') {
-        navigate('/shipper', { replace: true });
-      } else {
-        // Regular user goes to homepage or the page they were trying to access
-        navigate(from, { replace: true });
-      }
+      // Always navigate to the intended destination (defaults to homepage '/')
+      navigate(from, { replace: true });
     } catch (error) {
       // Error handled by useEffect
     }

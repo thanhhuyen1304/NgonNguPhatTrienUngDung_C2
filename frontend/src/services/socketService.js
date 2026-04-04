@@ -9,6 +9,12 @@ class SocketService {
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.listeners = new Map();
+    this.dispatch = null;
+  }
+
+  // Set Redux dispatch
+  setDispatch(dispatch) {
+    this.dispatch = dispatch;
   }
 
   // Initialize socket connection
@@ -110,6 +116,26 @@ class SocketService {
       
       // Emit to registered listeners
       this.emit('order_status_updated', data);
+    });
+
+    // New generic notifications
+    this.socket.on('new_notification', (notification) => {
+      console.log('🔔 New notification received:', notification);
+      
+      // Show toast
+      toast(notification.message, {
+        icon: '🔔',
+        duration: 5000,
+      });
+
+      // Dispatch to Redux store if available
+      if (this.dispatch) {
+        // Need to import addNotification dynamically or pass it in
+        const { addNotification } = require('../store/slices/notificationSlice');
+        this.dispatch(addNotification(notification));
+      }
+
+      this.emit('new_notification', notification);
     });
 
     // New order notifications

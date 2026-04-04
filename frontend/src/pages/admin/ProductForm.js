@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useI18n } from '../../i18n';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
-import { ArrowLeftIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, PhotoIcon, TrashIcon, XMarkIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 
 const AdminProductForm = () => {
   const navigate = useNavigate();
@@ -13,8 +13,11 @@ const AdminProductForm = () => {
 
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
-  const [images, setImages] = useState([]);
-  const [imagePreviews, setImagePreviews] = useState([]);
+  
+  // Images state
+  const [existingImages, setExistingImages] = useState([]); // Images already on server
+  const [newImages, setNewImages] = useState([]); // New files selected for upload
+  const [newImagePreviews, setNewImagePreviews] = useState([]); // Previews for new files
   
   const [formData, setFormData] = useState({
     name: '',
@@ -39,6 +42,7 @@ const AdminProductForm = () => {
 
   const fetchProduct = useCallback(async () => {
     try {
+      setLoading(true);
       const response = await api.get(`/products/${id}`);
       const product = response.data.data.product;
       setFormData({
@@ -50,12 +54,14 @@ const AdminProductForm = () => {
         stock: product.stock,
         brand: product.brand || '',
         tags: product.tags?.join(', ') || '',
-        isFeatured: product.isFeatured,
+        isFeatured: product.isFeatured || false,
       });
-      setImagePreviews(product.images.map(img => img.url));
+      setExistingImages(product.images || []);
     } catch (error) {
       toast.error(t('adminProductForm.errorLoading'));
       navigate('/admin/products');
+    } finally {
+      setLoading(false);
     }
   }, [id, navigate, t]);
 
@@ -76,15 +82,39 @@ const AdminProductForm = () => {
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
-    setImages(prev => [...prev, ...files]);
     
-    const previews = files.map(file => URL.createObjectURL(file));
-    setImagePreviews(prev => [...prev, ...previews]);
+    // Filter out files that are too large (e.g., 5MB)
+    const validFiles = files.filter(file => {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`File ${file.name} is too large (max 5MB)`);
+        return false;
+      }
+      return true;
+    });
+
+    setNewImages(prev => [...prev, ...validFiles]);
+    
+    const previews = validFiles.map(file => URL.createObjectURL(file));
+    setNewImagePreviews(prev => [...prev, ...previews]);
   };
 
-  const removeImage = (index) => {
-    setImages(prev => prev.filter((_, i) => i !== index - (imagePreviews.length - images.length)));
-    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+  const removeNewImage = (index) => {
+    setNewImages(prev => prev.filter((_, i) => i !== index));
+    // Revoke the URL to avoid memory leaks
+    URL.revokeObjectURL(newImagePreviews[index]);
+    setNewImagePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const deleteExistingImage = async (imageId) => {
+    if (!window.confirm(t('adminProducts.deleteConfirm'))) return;
+
+    try {
+      await api.delete(`/products/${id}/images/${imageId}`);
+      setExistingImages(prev => prev.filter(img => img._id !== imageId));
+      toast.success('Image deleted successfully');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to delete image');
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -100,25 +130,25 @@ const AdminProductForm = () => {
         tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
       };
 
+      let productId = id;
+
       if (isEdit) {
         await api.put(`/products/${id}`, productData);
-        toast.success(t('adminProductForm.updatedSuccess'));
       } else {
         const res = await api.post('/products', productData);
-        const productId = res.data.data.product._id;
-        
-        // Upload images if any
-        if (images.length > 0) {
-          const formDataWithImages = new FormData();
-          images.forEach(file => {
-            formDataWithImages.append('images', file);
-          });
-          await api.post(`/products/${productId}/images`, formDataWithImages);
-        }
-        
-        toast.success(t('adminProductForm.createdSuccess'));
+        productId = res.data.data.product._id;
       }
       
+      // Upload new images if any
+      if (newImages.length > 0) {
+        const formDataWithImages = new FormData();
+        newImages.forEach(file => {
+          formDataWithImages.append('images', file);
+        });
+        await api.post(`/products/${productId}/images`, formDataWithImages);
+      }
+      
+      toast.success(isEdit ? t('adminProductForm.updatedSuccess') : t('adminProductForm.createdSuccess'));
       navigate('/admin/products');
     } catch (error) {
       toast.error(error.response?.data?.message || t('adminProductForm.errorSaving'));
@@ -128,172 +158,230 @@ const AdminProductForm = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <button
-        onClick={() => navigate('/admin/products')}
-        className="flex items-center text-blue-600 hover:text-blue-800 font-medium mb-6"
-      >
-        <ArrowLeftIcon className="w-5 h-5 mr-2" />
-        {t('common.back')}
-      </button>
+    <div className="max-w-5xl mx-auto px-4 py-8">
+      <div className="flex items-center justify-between mb-8">
+        <button
+          onClick={() => navigate('/admin/products')}
+          className="group flex items-center text-gray-500 hover:text-blue-600 font-bold transition-all"
+        >
+          <div className="p-2 bg-white rounded-xl shadow-sm border border-gray-100 mr-3 group-hover:bg-blue-50 group-hover:border-blue-100 transition-all">
+            <ArrowLeftIcon className="w-5 h-5" />
+          </div>
+          {t('common.back')}
+        </button>
+        
+        <div className="flex items-center gap-3">
+          <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-black uppercase tracking-widest">
+            {isEdit ? 'Update Mode' : 'Creation Mode'}
+          </span>
+        </div>
+      </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">
-          {isEdit ? t('adminProductForm.editProduct') : t('adminProductForm.createProduct')}
-        </h1>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">{t('adminProductForm.productName')}</h3>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('adminProductForm.productName')} *
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column: Main Form */}
+        <div className="lg:col-span-2 space-y-8">
+          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-8 border-b border-gray-50 bg-gray-50/50">
+              <h1 className="text-2xl font-black text-gray-900">
+                {isEdit ? t('adminProductForm.editProduct') : t('adminProductForm.createProduct')}
+              </h1>
+              <p className="text-gray-500 text-sm mt-1">Fill in the primary details of your product</p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('adminProductForm.description')} *
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                required
-                rows="4"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
+            <div className="p-8 space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">
+                    {t('adminProductForm.productName')} *
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                    placeholder="Enter product title..."
+                    className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-gray-900 font-medium"
+                  />
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('adminProductForm.category')} *
-                </label>
-                <select
-                  name="category"
-                  value={formData.category}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">{t('common.all')}</option>
-                  {categories.map((cat) => (
-                    <option key={cat._id} value={cat._id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
+                <div>
+                  <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">
+                    {t('adminProductForm.description')} *
+                  </label>
+                  <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                    required
+                    rows="6"
+                    placeholder="Describe your product in detail..."
+                    className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-gray-900 font-medium"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">
+                      {t('adminProductForm.category')} *
+                    </label>
+                    <select
+                      name="category"
+                      value={formData.category}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-gray-900 font-medium appearance-none"
+                    >
+                      <option value="">Select Category</option>
+                      {categories.map((cat) => (
+                        <option key={cat._id} value={cat._id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">
+                      {t('adminProductForm.brand')}
+                    </label>
+                    <input
+                      type="text"
+                      name="brand"
+                      value={formData.brand}
+                      onChange={handleChange}
+                      placeholder="Apple, Samsung, etc."
+                      className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-gray-900 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">
+                    {t('adminProductForm.tags')}
+                  </label>
+                  <input
+                    type="text"
+                    name="tags"
+                    value={formData.tags}
+                    onChange={handleChange}
+                    placeholder="Separate tags with commas (e.g., new, best-seller, hot)"
+                    className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-gray-900 font-medium"
+                  />
+                </div>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('adminProductForm.brand')}
-                </label>
-                <input
-                  type="text"
-                  name="brand"
-                  value={formData.brand}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('adminProductForm.tags')}
-              </label>
-              <input
-                type="text"
-                name="tags"
-                value={formData.tags}
-                onChange={handleChange}
-                placeholder="e.g: new, hot, sale"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
             </div>
           </div>
 
-          {/* Pricing and Stock */}
-          <div className="space-y-4 border-t pt-4">
-            <h3 className="text-lg font-semibold text-gray-900">{t('adminProductForm.price')}</h3>
+          {/* Pricing and Stock Card */}
+          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 space-y-6">
+            <h3 className="text-lg font-black text-gray-900 flex items-center">
+              <CheckCircleIcon className="w-6 h-6 mr-2 text-blue-500" />
+              Inventory & Pricing
+            </h3>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">
                   {t('adminProductForm.price')} *
                 </label>
-                <input
-                  type="number"
-                  name="price"
-                  value={formData.price}
-                  onChange={handleChange}
-                  required
-                  step="1000"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <div className="relative">
+                  <input
+                    type="number"
+                    name="price"
+                    value={formData.price}
+                    onChange={handleChange}
+                    required
+                    step="1000"
+                    placeholder="0"
+                    className="w-full pl-5 pr-14 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-gray-900 font-black"
+                  />
+                  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs uppercase">VNĐ</span>
+                </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">
                   {t('adminProductForm.comparePrice')}
                 </label>
-                <input
-                  type="number"
-                  name="comparePrice"
-                  value={formData.comparePrice}
-                  onChange={handleChange}
-                  step="1000"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <div className="relative">
+                  <input
+                    type="number"
+                    name="comparePrice"
+                    value={formData.comparePrice}
+                    onChange={handleChange}
+                    step="1000"
+                    placeholder="0"
+                    className="w-full pl-5 pr-14 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-gray-400 font-bold line-through"
+                  />
+                  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs uppercase">VNĐ</span>
+                </div>
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('adminProductForm.stock')} *
-              </label>
-              <input
-                type="number"
-                name="stock"
-                value={formData.stock}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+              <div>
+                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">
+                  {t('adminProductForm.stock')} *
+                </label>
+                <input
+                  type="number"
+                  name="stock"
+                  value={formData.stock}
+                  onChange={handleChange}
+                  required
+                  placeholder="0"
+                  className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none text-gray-900 font-black"
+                />
+              </div>
 
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                name="isFeatured"
-                checked={formData.isFeatured}
-                onChange={handleChange}
-                className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-              />
-              <label className="ml-2 text-sm font-medium text-gray-700">
-                {t('adminProductForm.isFeatured')}
+              <label className="relative flex items-center p-4 bg-gray-50 rounded-2xl border border-gray-200 cursor-pointer hover:bg-gray-100 transition-all group">
+                <input
+                  type="checkbox"
+                  name="isFeatured"
+                  checked={formData.isFeatured}
+                  onChange={handleChange}
+                  className="w-5 h-5 text-blue-600 rounded-lg border-gray-300 focus:ring-blue-500 transition-all"
+                />
+                <span className="ml-3 text-sm font-bold text-gray-700 group-hover:text-gray-900 transition-colors">
+                  {t('adminProductForm.isFeatured')}
+                </span>
+                <PhotoIcon className="w-5 h-5 ml-auto text-gray-400" />
               </label>
             </div>
           </div>
+        </div>
 
-          {/* Images */}
-          {!isEdit && (
-            <div className="space-y-4 border-t pt-4">
-              <h3 className="text-lg font-semibold text-gray-900">{t('adminProductForm.images')}</h3>
+        {/* Right Column: Media & Actions */}
+        <div className="space-y-8">
+          {/* Actions Card */}
+          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4 sticky top-8">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-blue-600 text-white py-4 rounded-2xl hover:bg-blue-700 active:scale-95 transition-all font-black shadow-lg shadow-blue-200/50 disabled:bg-blue-400 disabled:shadow-none flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : isEdit ? (
+                t('common.update')
+              ) : (
+                t('common.create')
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/admin/products')}
+              className="w-full bg-gray-100 text-gray-700 py-4 rounded-2xl hover:bg-gray-200 active:scale-95 transition-all font-bold"
+            >
+              {t('common.cancel')}
+            </button>
+
+            {/* Image Upload Area */}
+            <div className="pt-4 border-t border-gray-100">
+              <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Product Images</h3>
               
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors">
+              <div className="relative group">
                 <input
                   type="file"
                   multiple
@@ -302,55 +390,81 @@ const AdminProductForm = () => {
                   className="hidden"
                   id="images"
                 />
-                <label htmlFor="images" className="cursor-pointer">
-                  <PhotoIcon className="w-12 h-12 mx-auto text-gray-400 mb-2" />
-                  <p className="text-gray-600">{t('adminProductForm.addImages')}</p>
-                  <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF, WEBP (Max 5MB)</p>
+                <label 
+                  htmlFor="images" 
+                  className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-200 rounded-3xl cursor-pointer hover:border-blue-500 hover:bg-blue-50/30 transition-all group-active:scale-95"
+                >
+                  <div className="p-3 bg-blue-50 rounded-2xl mb-3 group-hover:bg-blue-100 transition-colors">
+                    <PhotoIcon className="w-8 h-8 text-blue-600" />
+                  </div>
+                  <p className="text-sm font-bold text-gray-700">{t('adminProductForm.addImages')}</p>
+                  <p className="text-[10px] text-gray-400 mt-1 uppercase font-black">Max 5MB per file</p>
                 </label>
               </div>
 
-              {imagePreviews.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {imagePreviews.map((preview, index) => (
-                    <div key={index} className="relative">
-                      <img
-                        src={preview}
-                        alt={`Preview ${index}`}
-                        className="w-full h-32 object-cover rounded"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeImage(index)}
-                        className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1 hover:bg-red-700"
-                      >
-                        ✕
-                      </button>
+              {/* Image Previews */}
+              <div className="space-y-4 mt-6">
+                {/* Existing Images */}
+                {existingImages.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Saved on Cloud</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {existingImages.map((img) => (
+                        <div key={img._id} className="relative aspect-square rounded-2xl overflow-hidden shadow-sm border border-gray-100 group">
+                          <img
+                            src={img.url}
+                            alt="Product"
+                            className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => deleteExistingImage(img._id)}
+                            className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600 active:scale-90"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                          {img.isMain && (
+                            <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-blue-600 text-white text-[8px] font-black uppercase rounded-md shadow-sm">
+                              Main
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+                  </div>
+                )}
 
-          {/* Submit */}
-          <div className="flex gap-4 border-t pt-4">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:bg-blue-400"
-            >
-              {loading ? t('common.loading') : isEdit ? t('common.update') : t('common.create')}
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/admin/products')}
-              className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
-            >
-              {t('common.cancel')}
-            </button>
+                {/* New Images */}
+                {newImagePreviews.length > 0 && (
+                  <div className="pt-4 border-t border-gray-50">
+                    <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-3 flex items-center">
+                      <CheckCircleIcon className="w-3 h-3 mr-1" /> New Selection
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {newImagePreviews.map((preview, index) => (
+                        <div key={index} className="relative aspect-square rounded-2xl overflow-hidden shadow-sm border border-blue-100 group">
+                          <img
+                            src={preview}
+                            alt="Upload preview"
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeNewImage(index)}
+                            className="absolute top-2 right-2 p-1.5 bg-gray-900/80 text-white rounded-xl shadow-lg hover:bg-gray-900 transition-all active:scale-90"
+                          >
+                            <XMarkIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   );
 };

@@ -20,8 +20,6 @@ const ProfilePage = () => {
     phone: user?.phone || '',
     street: user?.address?.street || '',
     city: user?.address?.city || '',
-    state: user?.address?.state || '',
-    zipCode: user?.address?.zipCode || '',
     country: user?.address?.country || 'Vietnam',
   });
 
@@ -112,8 +110,6 @@ const ProfilePage = () => {
         address: {
           street: formData.street,
           city: formData.city,
-          state: formData.state,
-          zipCode: formData.zipCode,
           country: formData.country,
         },
       };
@@ -125,8 +121,6 @@ const ProfilePage = () => {
         formDataWithAvatar.append('phone', formData.phone);
         formDataWithAvatar.append('street', formData.street);
         formDataWithAvatar.append('city', formData.city);
-        formDataWithAvatar.append('state', formData.state);
-        formDataWithAvatar.append('zipCode', formData.zipCode);
         formDataWithAvatar.append('country', formData.country);
         formDataWithAvatar.append('avatar', avatarFile);
         
@@ -241,8 +235,6 @@ const ProfilePage = () => {
                       phone: user?.phone || '',
                       street: user?.address?.street || '',
                       city: user?.address?.city || '',
-                      state: user?.address?.state || '',
-                      zipCode: user?.address?.zipCode || '',
                       country: user?.address?.country || 'Vietnam',
                     });
                   } else {
@@ -310,33 +302,6 @@ const ProfilePage = () => {
                         type="text"
                         name="city"
                         value={formData.city}
-                        onChange={handleChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Tỉnh
-                      </label>
-                      <input
-                        type="text"
-                        name="state"
-                        value={formData.state}
-                        onChange={handleChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 mt-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Mã bưu điện
-                      </label>
-                      <input
-                        type="text"
-                        name="zipCode"
-                        value={formData.zipCode}
                         onChange={handleChange}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />

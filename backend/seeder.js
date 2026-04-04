@@ -6,9 +6,9 @@ const bcrypt = require('bcryptjs');
 dotenv.config();
 
 // Import models
-const User = require('./models/User');
-const Category = require('./models/Category');
-const Product = require('./models/Product');
+const User = require('./schemas/User');
+const Category = require('./schemas/Category');
+const Product = require('./schemas/Product');
 
 // Sample data
 const users = [

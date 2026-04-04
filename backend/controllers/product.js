@@ -178,20 +178,36 @@ const addProductImages = asyncHandler(async (req, res) => {
   }
 
   if (!req.files || req.files.length === 0) {
-    res.status(400);
-    throw new Error('Please upload at least one image');
+    console.log('DEBUG: No files in request. Headers:', req.headers['content-type']);
+    throw new AppError('Please upload at least one image', 400);
   }
 
-  const newImages = req.files.map((file, index) => ({
-    url: file.path,
-    publicId: file.filename,
-    isMain: product.images.length === 0 && index === 0,
-  }));
+  const newImages = req.files.map((file, index) => {
+    // Standardize URLs and public IDs from Cloudinary
+    // Fallback to local placeholders if Cloudinary is not configured
+    const url = file.path || file.secure_url || (file.buffer ? `data:${file.mimetype};base64,${file.buffer.toString('base64')}` : null);
+    const publicId = file.filename || file.public_id || `temp_${Date.now()}_${index}`;
 
-  product.images.push(...newImages);
-  await product.save();
+    if (!url) {
+      throw new Error(`File upload failed for file: ${file.originalname}`);
+    }
 
-  res.json({ success: true, message: 'Images uploaded successfully', data: { images: product.images } });
+    return {
+      url: url,
+      publicId: publicId,
+      isMain: product.images.length === 0 && index === 0,
+    };
+  });
+
+  try {
+    product.images.push(...newImages);
+    await product.save();
+    res.json({ success: true, message: 'Images uploaded successfully', data: { images: product.images } });
+  } catch (error) {
+    console.error('❌ Error saving product images:', error);
+    res.status(500);
+    throw new Error('Failed to save product images: ' + error.message);
+  }
 });
 
 const deleteProductImage = asyncHandler(async (req, res) => {
