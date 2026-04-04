@@ -21,13 +21,18 @@ const CartPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { items, totalPrice, loading } = useSelector((state) => state.cart);
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
 
   useEffect(() => {
+    // Redirect admin away from cart page
+    if (user?.role === 'admin') {
+      navigate('/admin', { replace: true });
+      return;
+    }
     if (isAuthenticated) {
       dispatch(getCart());
     }
-  }, [dispatch, isAuthenticated]);
+  }, [dispatch, isAuthenticated, user, navigate]);
 
   const handleQuantityChange = async (productId, quantity) => {
     try {
