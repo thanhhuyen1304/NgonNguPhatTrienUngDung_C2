@@ -21,7 +21,7 @@ const AdminCategories = () => {
       const response = await api.get('/categories/admin/all');
       setCategories(response.data.data.categories || []);
     } catch (error) {
-      toast.error(t('common.error') + ': Failed to load categories');
+      toast.error(`${t('common.error')}: Không thể tải danh mục`);
     } finally {
       setLoading(false);
     }

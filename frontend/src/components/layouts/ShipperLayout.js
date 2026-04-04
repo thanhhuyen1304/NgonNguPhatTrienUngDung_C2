@@ -22,9 +22,9 @@ const ShipperLayout = () => {
   const { t } = useI18n();
 
   const navigation = [
-    { name: 'Dashboard', href: '/shipper', icon: TruckIcon },
-    { name: 'Delivery Orders', href: '/shipper/orders', icon: ClipboardDocumentListIcon },
-    { name: 'My Route', href: '/shipper/route', icon: MapPinIcon },
+    { name: 'Bảng điều khiển', href: '/shipper', icon: TruckIcon },
+    { name: 'Đơn giao hàng', href: '/shipper/orders', icon: ClipboardDocumentListIcon },
+    { name: 'Lộ trình của tôi', href: '/shipper/route', icon: MapPinIcon },
   ];
 
   const handleLogout = async () => {
@@ -53,7 +53,7 @@ const ShipperLayout = () => {
         />
         <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-white">
           <div className="flex h-16 items-center justify-between px-4 border-b">
-            <span className="text-xl font-bold text-blue-600">Shipper</span>
+            <span className="text-xl font-bold text-blue-600">Giao hàng</span>
             <button onClick={() => setSidebarOpen(false)}>
               <XMarkIcon className="h-6 w-6" />
             </button>
@@ -83,7 +83,7 @@ const ShipperLayout = () => {
         <div className="flex min-h-0 flex-1 flex-col bg-white border-r">
           <div className="flex h-16 items-center px-4 border-b">
             <Link to="/" className="flex items-center">
-              <span className="text-xl font-bold text-blue-600">Shipper</span>
+              <span className="text-xl font-bold text-blue-600">Giao hàng</span>
             </Link>
           </div>
           <nav className="flex-1 space-y-1 px-2 py-4">
@@ -135,11 +135,11 @@ const ShipperLayout = () => {
           <div className="flex flex-1 justify-between px-4">
             <div className="flex items-center">
               <h1 className="text-lg font-semibold text-gray-900">
-                Shipper Dashboard
+                Bảng điều khiển giao hàng
               </h1>
             </div>
             <div className="flex items-center">
-              <span className="text-sm text-gray-500 mr-2">Rating:</span>
+              <span className="text-sm text-gray-500 mr-2">Đánh giá:</span>
               <span className="text-sm font-medium text-gray-900">
                 {user?.shipperInfo?.rating}⭐
               </span>

@@ -219,7 +219,7 @@ const AdminProductForm = () => {
                 name="tags"
                 value={formData.tags}
                 onChange={handleChange}
-                placeholder="e.g: new, hot, sale"
+                placeholder="Ví dụ: mới, nổi bật, giảm giá"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -305,7 +305,7 @@ const AdminProductForm = () => {
                 <label htmlFor="images" className="cursor-pointer">
                   <PhotoIcon className="w-12 h-12 mx-auto text-gray-400 mb-2" />
                   <p className="text-gray-600">{t('adminProductForm.addImages')}</p>
-                  <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF, WEBP (Max 5MB)</p>
+                  <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF, WEBP (Tối đa 5MB)</p>
                 </label>
               </div>
 

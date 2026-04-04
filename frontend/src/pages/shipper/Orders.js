@@ -11,11 +11,11 @@ const formatCurrency = (amount) => {
 
 const mapStatusLabel = (status) => {
   const labels = {
-    confirmed: 'Confirmed',
-    processing: 'Processing',
-    shipped: 'Shipped',
-    delivered: 'Delivered',
-    cancelled: 'Cancelled',
+    confirmed: 'Đã xác nhận',
+    processing: 'Đang xử lý',
+    shipped: 'Đang giao',
+    delivered: 'Đã giao',
+    cancelled: 'Đã hủy',
   };
 
   return labels[status] || status;
@@ -49,7 +49,7 @@ const ShipperOrders = () => {
       }
     } catch (error) {
       console.error('Error accepting order:', error);
-      alert('Failed to accept order');
+      alert('Không thể nhận đơn hàng');
     }
   };
 
@@ -63,7 +63,7 @@ const ShipperOrders = () => {
       }
     } catch (error) {
       console.error('Error starting delivery:', error);
-      alert('Failed to start delivery');
+      alert('Không thể bắt đầu giao hàng');
     }
   };
 
@@ -86,15 +86,15 @@ const ShipperOrders = () => {
         <div className="flex gap-4">
           <input
             type="text"
-            placeholder="Search order..."
+            placeholder="Tìm kiếm đơn hàng..."
             className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm"
           />
           <select className="border border-gray-300 rounded px-3 py-2 text-sm">
-            <option value="">All Status</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="processing">Processing</option>
-            <option value="shipped">Shipped</option>
-            <option value="delivered">Delivered</option>
+              <option value="">Tất cả trạng thái</option>
+              <option value="confirmed">Đã xác nhận</option>
+              <option value="processing">Đang xử lý</option>
+              <option value="shipped">Đang giao</option>
+              <option value="delivered">Đã giao</option>
           </select>
         </div>
       </div>
@@ -117,11 +117,11 @@ const ShipperOrders = () => {
                 <div className="space-y-2 text-sm text-gray-600">
                   <div className="flex items-center">
                     <UserIcon className="h-4 w-4 mr-2" />
-                    {order.user?.name || order.shippingAddress?.fullName || 'N/A'}
+                    {order.user?.name || order.shippingAddress?.fullName || 'Chưa cập nhật'}
                   </div>
                   <div className="flex items-center">
                     <PhoneIcon className="h-4 w-4 mr-2" />
-                    {order.user?.phone || order.shippingAddress?.phone || 'N/A'}
+                    {order.user?.phone || order.shippingAddress?.phone || 'Chưa cập nhật'}
                   </div>
                   <div className="flex items-center">
                     <MapPinIcon className="h-4 w-4 mr-2" />
@@ -136,14 +136,14 @@ const ShipperOrders = () => {
                 </div>
                 <div className="flex gap-2">
                   <button className="bg-blue-50 hover:bg-blue-100 text-blue-600 px-4 py-2 rounded text-sm font-medium transition">
-                    View Details
+                    Xem chi tiết
                   </button>
                   {order.status === 'confirmed' && !order.shipper && (
                     <button 
                       onClick={() => handleAcceptOrder(order._id)}
                       className="bg-green-50 hover:bg-green-100 text-green-600 px-4 py-2 rounded text-sm font-medium transition"
                     >
-                      Accept
+                      Nhận đơn
                     </button>
                   )}
                   {order.status === 'processing' && (
@@ -151,7 +151,7 @@ const ShipperOrders = () => {
                       onClick={() => handleStartDelivery(order._id)}
                       className="bg-purple-50 hover:bg-purple-100 text-purple-600 px-4 py-2 rounded text-sm font-medium transition"
                     >
-                      Start Delivery
+                      Bắt đầu giao
                     </button>
                   )}
                 </div>
@@ -164,7 +164,7 @@ const ShipperOrders = () => {
       {orders.length === 0 && (
         <div className="bg-white shadow rounded-lg p-8 text-center">
           <TruckIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600">No orders available at the moment.</p>
+          <p className="text-gray-600">Hiện chưa có đơn hàng phù hợp.</p>
         </div>
       )}
     </div>
