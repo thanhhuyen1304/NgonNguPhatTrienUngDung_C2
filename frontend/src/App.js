@@ -41,6 +41,7 @@ import AdminCategories from './pages/admin/Categories';
 import AdminOrders from './pages/admin/Orders';
 import AdminUsers from './pages/admin/Users';
 import AdminSupportInbox from './pages/admin/SupportInbox';
+import AdminCoupons from './pages/admin/Coupons';
 
 // Shipper Pages
 import ShipperDashboard from './pages/shipper/Dashboard';
@@ -140,6 +141,7 @@ function App() {
             <Route path="categories" element={<AdminCategories />} />
             <Route path="orders" element={<AdminOrders />} />
             <Route path="users" element={<AdminUsers />} />
+            <Route path="coupons" element={<AdminCoupons />} />
             <Route path="support" element={<AdminSupportInbox />} />
           </Route>
         </Route>

@@ -23,6 +23,7 @@ const wishlist = require('./routes/wishlist');
 const shipper = require('./routes/shipper');
 const support = require('./routes/support');
 const payment = require('./routes/payment');
+const coupon = require('./routes/coupon');
 
 // Import middleware
 const error = require('./middleware/error');
@@ -141,6 +142,7 @@ app.use('/api/wishlist', wishlist);
 app.use('/api/shipper', shipper);
 app.use('/api/support', support);
 app.use('/api/payment', payment);
+app.use('/api/coupons', coupon);
 
 /* =======================
    Health Check
