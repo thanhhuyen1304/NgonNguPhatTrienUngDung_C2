@@ -1,25 +1,26 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { useI18n } from '../../i18n';
 import socketService from '../../services/socketService';
 import { formatVND } from '../../utils/currency';
+import {
+  getAdminOrders,
+  getAdminOrderStats,
+  updateAdminOrderStatus,
+} from '../../services/adminOrderService';
 import { 
   EyeIcon, 
   CheckCircleIcon, 
-  XCircleIcon, 
   ArrowPathIcon,
   MagnifyingGlassIcon,
   FunnelIcon,
   CalendarDaysIcon,
-  CurrencyDollarIcon,
   UserIcon,
   TruckIcon,
   ClockIcon,
   CheckIcon,
   XMarkIcon,
   ShoppingBagIcon,
-  TrophyIcon,
   ArchiveBoxIcon
 } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
@@ -48,33 +49,24 @@ const AdminOrders = () => {
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
-      
-      let statusParam = status;
-      if (status === 'active') {
-        statusParam = 'shipped';
-      }
-      
-      const params = new URLSearchParams({
-        page,
-        limit: 15,
-        ...(statusParam && { status: statusParam }),
-        ...(searchTerm && { search: searchTerm }),
-        ...(paymentStatus && { paymentStatus }),
-        ...(dateRange.start && { startDate: dateRange.start }),
-        ...(dateRange.end && { endDate: dateRange.end }),
-      });
 
-      const [ordersResponse, statsResponse] = await Promise.all([
-        api.get(`/orders/admin/all?${params}`),
-        api.get('/orders/admin/stats').catch(err => {
-          console.error('Stats error:', err);
-          return { data: { data: { statusCounts: [] } } };
-        })
+      const [ordersData, statsData] = await Promise.all([
+        getAdminOrders({
+          page,
+          status,
+          searchTerm,
+          paymentStatus,
+          dateRange,
+        }),
+        getAdminOrderStats().catch((error) => {
+          console.error('Stats error:', error);
+          return { statusCounts: [] };
+        }),
       ]);
 
-      setOrders(ordersResponse.data.data.orders);
-      setTotalPages(ordersResponse.data.data.pagination.pages);
-      setOrderStats(statsResponse.data.data);
+      setOrders(ordersData.orders);
+      setTotalPages(ordersData.totalPages);
+      setOrderStats(statsData);
     } catch (error) {
       toast.error(t('common.error') + ': ' + (error.response?.data?.message || t('common.loading')));
     } finally {
@@ -88,8 +80,8 @@ const AdminOrders = () => {
 
   const fetchOrderStats = useCallback(async () => {
     try {
-      const statsResponse = await api.get('/orders/admin/stats');
-      setOrderStats(statsResponse.data.data);
+      const statsData = await getAdminOrderStats();
+      setOrderStats(statsData);
     } catch (error) {
       console.error('Stats error:', error);
     }
@@ -472,7 +464,10 @@ const AdminOrders = () => {
         onClose={() => setConfirmDialog({ ...confirmDialog, open: false })}
         onConfirm={async () => {
           try {
-            await api.put(`/orders/${confirmDialog.orderId}/status`, { status: confirmDialog.newStatus });
+            await updateAdminOrderStatus({
+              orderId: confirmDialog.orderId,
+              status: confirmDialog.newStatus,
+            });
             toast.success("Success");
             fetchOrders();
           } catch (err) {

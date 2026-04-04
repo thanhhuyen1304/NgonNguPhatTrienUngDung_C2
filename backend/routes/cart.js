@@ -10,11 +10,11 @@ const {
   getCartCount,
 } = require('../controllers/cart');
 
-const { protect } = require('../middleware/auth');
+const { protect, customerOnly } = require('../middleware/auth');
 const { addToCartValidation, updateCartValidation, mongoIdValidation } = require('../middleware/validate');
 
 // All routes require authentication
-router.use(protect);
+router.use(protect, customerOnly);
 
 router.get('/', getCart);
 router.get('/count', getCartCount);

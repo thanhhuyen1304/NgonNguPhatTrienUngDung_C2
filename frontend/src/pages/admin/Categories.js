@@ -1,15 +1,18 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useI18n } from '../../i18n';
-import api from '../../services/api';
 import toast from 'react-hot-toast';
+import {
+  createAdminCategory,
+  deleteAdminCategory,
+  getAdminCategories,
+  updateAdminCategory,
+} from '../../services/adminCategoryService';
 import { 
   PencilIcon, 
   TrashIcon, 
   PlusIcon, 
   TagIcon, 
-  FolderIcon,
-  ArchiveBoxIcon,
-  TrophyIcon
+  ArchiveBoxIcon
 } from '@heroicons/react/24/outline';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 
@@ -32,8 +35,8 @@ const AdminCategories = () => {
   const fetchCategories = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get('/categories/admin/all');
-      setCategories(response.data.data.categories || []);
+      const categoryList = await getAdminCategories();
+      setCategories(categoryList);
     } catch (error) {
       toast.error(`${t('common.error')}: Không thể tải danh mục`);
     } finally {
@@ -51,10 +54,10 @@ const AdminCategories = () => {
     
     try {
       if (editId) {
-        await api.put(`/categories/${editId}`, formData);
+        await updateAdminCategory(editId, formData);
         toast.success(t('adminCategories.updatedSuccess'));
       } else {
-        await api.post('/categories', formData);
+        await createAdminCategory(formData);
         toast.success(t('adminCategories.createdSuccess'));
       }
       
@@ -77,7 +80,7 @@ const AdminCategories = () => {
     if (!categoryToDelete) return;
 
     try {
-      await api.delete(`/categories/${categoryToDelete._id}`);
+      await deleteAdminCategory(categoryToDelete._id);
       toast.success(t('adminCategories.deletedSuccess'));
       setIsDeleteOpen(false);
       setCategoryToDelete(null);

@@ -13,7 +13,7 @@ const {
   getRevenueReport,
 } = require('../controllers/order');
 
-const { protect, admin, shipper } = require('../middleware/auth');
+const { protect, admin, shipper, customerOnly } = require('../middleware/auth');
 const {
   createOrderValidation,
   updateOrderStatusValidation,
@@ -22,8 +22,8 @@ const {
 } = require('../middleware/validate');
 
 // User routes (require authentication)
-router.post('/', protect, createOrderValidation, createOrder);
-router.get('/my-orders', protect, paginationValidation, getMyOrders);
+router.post('/', protect, customerOnly, createOrderValidation, createOrder);
+router.get('/my-orders', protect, customerOnly, paginationValidation, getMyOrders);
 
 
 // Admin routes (must come before /:id route)
@@ -41,7 +41,7 @@ router.put(
 router.put('/:id/payment', protect, admin, mongoIdValidation('id'), updatePaymentStatus);
 
 // User routes with ID parameter (must come after admin routes)
-router.get('/:id', protect, mongoIdValidation('id'), getOrderById);
-router.put('/:id/cancel', protect, mongoIdValidation('id'), cancelOrder);
+router.get('/:id', protect, customerOnly, mongoIdValidation('id'), getOrderById);
+router.put('/:id/cancel', protect, customerOnly, mongoIdValidation('id'), cancelOrder);
 
 module.exports = router;

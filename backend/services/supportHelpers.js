@@ -35,7 +35,8 @@ const ensureConversationAccess = (conversation, user) => {
   return true;
 };
 
-const populateConversation = (query) => query.populate('user', 'name email avatar role').populate('assignedAdmin', 'name email avatar role');
+const populateConversation = (query) =>
+  query.populate('user', 'name email avatar role').populate('assignedAdmin', 'name email avatar role');
 
 const populateMessage = (query) => query.populate('sender', 'name email avatar role');
 

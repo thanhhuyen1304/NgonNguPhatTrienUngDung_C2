@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import api from '../../services/api';
+import api, { getResponseData } from '../../services/api';
 
 const safeParseUser = () => {
   const rawUser = localStorage.getItem('user');
@@ -52,7 +52,7 @@ export const register = createAsyncThunk(
   async (userData, { rejectWithValue }) => {
     try {
       const response = await api.post('/auth/register', userData);
-      const { user, accessToken } = response.data.data;
+      const { user, accessToken } = getResponseData(response);
       persistSession({ user, accessToken });
       return user;
     } catch (error) {
@@ -68,7 +68,7 @@ export const login = createAsyncThunk(
   async (credentials, { rejectWithValue }) => {
     try {
       const response = await api.post('/auth/login', credentials);
-      const { user, accessToken } = response.data.data;
+      const { user, accessToken } = getResponseData(response);
       persistSession({ user, accessToken });
       return user;
     } catch (error) {
@@ -101,7 +101,7 @@ export const getMe = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await api.get('/auth/me');
-      const user = response.data.data.user;
+      const user = getResponseData(response)?.user;
       persistSession({ user });
       return user;
     } catch (error) {
@@ -133,7 +133,7 @@ export const updateProfile = createAsyncThunk(
   async (userData, { rejectWithValue }) => {
     try {
       const response = await api.put('/auth/profile', userData);
-      const user = response.data.data.user;
+      const user = getResponseData(response)?.user;
       persistSession({ user });
       return user;
     } catch (error) {
@@ -149,13 +149,13 @@ export const changePassword = createAsyncThunk(
   async (passwordData, { rejectWithValue }) => {
     try {
       const response = await api.put('/auth/change-password', passwordData);
-      const accessToken = response.data.data.accessToken;
+      const accessToken = getResponseData(response)?.accessToken;
 
       if (accessToken) {
         persistSession({ accessToken });
       }
 
-      return response.data.data;
+      return getResponseData(response);
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || 'Failed to change password'
@@ -183,7 +183,7 @@ export const resetPassword = createAsyncThunk(
   async ({ token, newPassword }, { rejectWithValue }) => {
     try {
       const response = await api.post(`/auth/reset-password/${token}`, { newPassword });
-      const { user, accessToken } = response.data.data;
+      const { user, accessToken } = getResponseData(response);
       persistSession({ user, accessToken });
       return user;
     } catch (error) {

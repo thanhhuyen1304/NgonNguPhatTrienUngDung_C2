@@ -5,9 +5,7 @@ import {
   ChatBubbleLeftRightIcon,
   FunnelIcon,
   MagnifyingGlassIcon,
-  PlusIcon,
   ArchiveBoxIcon,
-  TrophyIcon,
   ClockIcon,
   CheckCircleIcon,
   EnvelopeIcon,
@@ -15,21 +13,22 @@ import {
   SignalIcon,
   TrashIcon
 } from '@heroicons/react/24/outline';
-import api from '../../services/api';
 import SupportConversationList from '../../components/support/SupportConversationList';
 import SupportMessageList from '../../components/support/SupportMessageList';
 import SupportChatComposer from '../../components/support/SupportChatComposer';
 import {
   createAttachmentPreview,
-  extractConversations,
-  extractMessages,
-  getResponsePayload,
   mergeMessages,
-  normalizeConversation,
-  normalizeMessage,
   revokeAttachmentPreview,
-  sortMessagesByTime,
 } from '../../components/support/supportUtils';
+import {
+  deleteAdminSupportConversation,
+  getAdminSupportConversations,
+  getAdminSupportMessages,
+  markAdminSupportConversationRead,
+  sendAdminSupportMessage,
+  updateAdminSupportConversationStatus,
+} from '../../services/supportService';
 
 const AdminSupportInbox = () => {
   const { id: urlId } = useParams();
@@ -100,7 +99,7 @@ const AdminSupportInbox = () => {
     }
 
     try {
-      await api.patch(`/support/admin/conversations/${conversationId}/read`);
+      await markAdminSupportConversationRead(conversationId);
       setConversations((previousConversations) => previousConversations.map((conversation) => {
         if (conversation._id !== conversationId) {
           return conversation;
@@ -127,11 +126,7 @@ const AdminSupportInbox = () => {
     }
 
     try {
-      const response = await api.get(`/support/admin/conversations/${conversationId}/messages`);
-      const payload = getResponsePayload(response);
-      const nextMessages = sortMessagesByTime(
-        extractMessages(payload).map(normalizeMessage).filter(Boolean)
-      );
+      const nextMessages = await getAdminSupportMessages(conversationId);
 
       setMessages(nextMessages);
       await markConversationAsRead(conversationId);
@@ -154,14 +149,7 @@ const AdminSupportInbox = () => {
     }
 
     try {
-      const response = await api.get('/support/admin/conversations');
-      const payload = getResponsePayload(response);
-      const nextConversations = extractConversations(payload)
-        .map(normalizeConversation)
-        .filter(Boolean)
-        .sort((left, right) => {
-          return new Date(right.lastMessageAt || 0).getTime() - new Date(left.lastMessageAt || 0).getTime();
-        });
+      const nextConversations = await getAdminSupportConversations();
 
       setConversations(nextConversations);
       if (nextConversations.length > 0 && !urlId) {
@@ -178,7 +166,7 @@ const AdminSupportInbox = () => {
         setLoadingConversations(false);
       }
     }
-  }, []);
+  }, [urlId]);
 
   useEffect(() => {
     fetchConversations();
@@ -266,28 +254,11 @@ const AdminSupportInbox = () => {
 
     try {
       setSending(true);
-      const formData = new FormData();
-
-      if (trimmedDraft) {
-        formData.append('text', trimmedDraft);
-      }
-
-      attachments.forEach((attachment) => {
-        formData.append('attachments', attachment.file);
+      const returnedMessage = await sendAdminSupportMessage({
+        conversationId: selectedConversationId,
+        text: trimmedDraft,
+        attachments,
       });
-
-      const response = await api.post(
-        `/support/admin/conversations/${selectedConversationId}/messages`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      );
-
-      const payload = getResponsePayload(response);
-      const returnedMessage = normalizeMessage(payload?.message || payload?.data?.message || null);
 
       if (returnedMessage) {
         setMessages((previousMessages) => mergeMessages(previousMessages, [returnedMessage]));
@@ -313,9 +284,7 @@ const AdminSupportInbox = () => {
 
     try {
       setUpdatingStatus(true);
-      await api.patch(`/support/admin/conversations/${selectedConversationId}/status`, {
-        status: nextStatus,
-      });
+      await updateAdminSupportConversationStatus({ conversationId: selectedConversationId, status: nextStatus });
 
       setConversations((previousConversations) => previousConversations.map((conversation) => {
         if (conversation._id !== selectedConversationId) {
@@ -349,7 +318,7 @@ const AdminSupportInbox = () => {
 
     try {
       setDeleting(true);
-      await api.delete(`/support/admin/conversations/${selectedConversationId}`);
+      await deleteAdminSupportConversation(selectedConversationId);
       
       const deletedId = selectedConversationId;
       setConversations((prev) => prev.filter((c) => c._id !== deletedId));

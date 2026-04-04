@@ -77,7 +77,7 @@ const Header = ({ onSidebarToggle }) => {
           {/* Logo */}
           <div className="flex items-center mr-8">
             <Link to="/" className="flex-shrink-0 flex items-center">
-              <span className="text-2xl font-bold text-blue-600">E-commerce</span>
+              <span className="text-2xl font-bold text-blue-600">Thương mại điện tử</span>
             </Link>
           </div>
 

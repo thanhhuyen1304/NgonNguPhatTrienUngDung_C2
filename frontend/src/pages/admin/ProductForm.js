@@ -1,9 +1,17 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useI18n } from '../../i18n';
-import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { ArrowLeftIcon, PhotoIcon, TrashIcon, XMarkIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import {
+  createEmptyProductFormData,
+  deleteAdminProductImage,
+  getAdminProductFormSeed,
+  mapProductToFormData,
+  saveAdminProduct,
+  uploadAdminProductImages,
+  validateProductImageFiles,
+} from '../../services/adminProductService';
 
 const AdminProductForm = () => {
   const navigate = useNavigate();
@@ -19,44 +27,18 @@ const AdminProductForm = () => {
   const [newImages, setNewImages] = useState([]); // New files selected for upload
   const [newImagePreviews, setNewImagePreviews] = useState([]); // Previews for new files
   
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    comparePrice: '',
-    category: '',
-    stock: '',
-    brand: '',
-    tags: '',
-    isFeatured: false,
-  });
+  const [formData, setFormData] = useState(createEmptyProductFormData());
 
-  const fetchCategories = useCallback(async () => {
-    try {
-      const response = await api.get('/categories');
-      setCategories(response.data.data.categories || []);
-    } catch (error) {
-      toast.error(t('adminProductForm.errorLoading'));
-    }
-  }, [t]);
-
-  const fetchProduct = useCallback(async () => {
+  const fetchFormSeed = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/products/${id}`);
-      const product = response.data.data.product;
-      setFormData({
-        name: product.name,
-        description: product.description,
-        price: product.price,
-        comparePrice: product.comparePrice || '',
-        category: product.category._id,
-        stock: product.stock,
-        brand: product.brand || '',
-        tags: product.tags?.join(', ') || '',
-        isFeatured: product.isFeatured || false,
-      });
-      setExistingImages(product.images || []);
+      const { categories: nextCategories, product } = await getAdminProductFormSeed(id);
+      setCategories(nextCategories);
+
+      if (product) {
+        setFormData(mapProductToFormData(product));
+        setExistingImages(product.images || []);
+      }
     } catch (error) {
       toast.error(t('adminProductForm.errorLoading'));
       navigate('/admin/products');
@@ -66,11 +48,8 @@ const AdminProductForm = () => {
   }, [id, navigate, t]);
 
   useEffect(() => {
-    fetchCategories();
-    if (isEdit) {
-      fetchProduct();
-    }
-  }, [isEdit, id, fetchCategories, fetchProduct]);
+    fetchFormSeed();
+  }, [fetchFormSeed]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -82,14 +61,10 @@ const AdminProductForm = () => {
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
-    
-    // Filter out files that are too large (e.g., 5MB)
-    const validFiles = files.filter(file => {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error(`File ${file.name} is too large (max 5MB)`);
-        return false;
-      }
-      return true;
+    const { validFiles, rejectedFiles } = validateProductImageFiles(files);
+
+    rejectedFiles.forEach((fileName) => {
+      toast.error(`File ${fileName} is too large (max 5MB)`);
     });
 
     setNewImages(prev => [...prev, ...validFiles]);
@@ -109,7 +84,7 @@ const AdminProductForm = () => {
     if (!window.confirm(t('adminProducts.deleteConfirm'))) return;
 
     try {
-      await api.delete(`/products/${id}/images/${imageId}`);
+      await deleteAdminProductImage({ productId: id, imageId });
       setExistingImages(prev => prev.filter(img => img._id !== imageId));
       toast.success('Image deleted successfully');
     } catch (error) {
@@ -122,31 +97,8 @@ const AdminProductForm = () => {
     setLoading(true);
 
     try {
-      const productData = {
-        ...formData,
-        price: parseFloat(formData.price),
-        comparePrice: formData.comparePrice ? parseFloat(formData.comparePrice) : undefined,
-        stock: parseInt(formData.stock),
-        tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
-      };
-
-      let productId = id;
-
-      if (isEdit) {
-        await api.put(`/products/${id}`, productData);
-      } else {
-        const res = await api.post('/products', productData);
-        productId = res.data.data.product._id;
-      }
-      
-      // Upload new images if any
-      if (newImages.length > 0) {
-        const formDataWithImages = new FormData();
-        newImages.forEach(file => {
-          formDataWithImages.append('images', file);
-        });
-        await api.post(`/products/${productId}/images`, formDataWithImages);
-      }
+      const productId = await saveAdminProduct({ productId: id, formData });
+      await uploadAdminProductImages({ productId, files: newImages });
       
       toast.success(isEdit ? t('adminProductForm.updatedSuccess') : t('adminProductForm.createdSuccess'));
       navigate('/admin/products');

@@ -4,15 +4,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import { createOrder } from '../store/slices/orderSlice';
 import toast from 'react-hot-toast';
 import { formatVND } from '../utils/currency';
-import api from '../services/api';
-
-const createCheckoutRequestKey = () => {
-  if (window.crypto?.randomUUID) {
-    return window.crypto.randomUUID();
-  }
-
-  return `checkout-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-};
+import {
+  applyCouponCode,
+  buildOrderPayload,
+  createMomoPayment,
+  resolveShippingCoordinates,
+} from '../services/checkoutService';
 
 const CheckoutPage = () => {
   const dispatch = useDispatch();
@@ -52,23 +49,10 @@ const CheckoutPage = () => {
   const couponDiscount = couponInfo?.discountAmount || 0;
   const finalTotal = Math.max(0, totalPrice + shippingCost + taxPrice - couponDiscount);
 
-  // ── Xử lý MoMo payment ──────────────────────────────────────
   const handleMomoPayment = async (orderData) => {
-    // Dùng api axios instance (tự động gửi accessToken qua interceptor)
-    const response = await api.post('/payment/momo/create', orderData);
-    const data = response.data;
-
-    if (!data.success) {
-      throw new Error(data.message || 'Không thể tạo link thanh toán MoMo');
-    }
-
-    // ⚠️ KHÔNG xóa giỏ hàng ở đây — chỉ xóa sau khi thanh toán thành công
-    // Giỏ hàng sẽ được xóa trên PaymentResultPage khi verify thành công
-
+    const payUrl = await createMomoPayment(orderData);
     toast.success('Đang chuyển đến MoMo...', { id: 'orderProcess' });
-
-    // Redirect sang MoMo payment page
-    window.location.href = data.data.payUrl;
+    window.location.href = payUrl;
   };
 
   const handleApplyCoupon = async () => {
@@ -81,11 +65,11 @@ const CheckoutPage = () => {
     setCouponError('');
 
     try {
-      const response = await api.post('/coupons/apply', {
-        code: couponCode.trim(),
+      const couponData = await applyCouponCode({
+        code: couponCode,
         orderAmount: totalPrice,
       });
-      setCouponInfo(response.data.data);
+      setCouponInfo(couponData);
       toast.success('Coupon applied successfully');
     } catch (error) {
       setCouponInfo(null);
@@ -112,151 +96,19 @@ const CheckoutPage = () => {
     setIsProcessing(true);
     toast.loading('Processing order...', { id: 'orderProcess' });
 
-    let lat = null;
-    let lon = null;
-
-    const addressString = `${formData.street}, ${formData.city}, ${formData.country}`;
-    const addressLower = addressString.toLowerCase();
-
-    // Fallback dictionary for common test/demo addresses in this project
-    const mockCoordinates = {
-      '13/30': { latitude: 10.8486, longitude: 106.7121 }, // Thu Duc (Hiep Binh Phuoc / QL13)
-      'hiệp bình phước': { latitude: 10.8486, longitude: 106.7121 },
-      'hiệp phú': { latitude: 10.8435, longitude: 106.7135 }, // Thu Duc (Hiep Phu / Le Van Viet)
-      'lê văn việt': { latitude: 10.8435, longitude: 106.7135 },
-      'quận 1': { latitude: 10.7769, longitude: 106.7009 },
-      'quận 3': { latitude: 10.7829, longitude: 106.6934 },
-      'quận 4': { latitude: 10.7588, longitude: 106.7018 },
-      'quận 5': { latitude: 10.7538, longitude: 106.6680 },
-      'quận 6': { latitude: 10.7481, longitude: 106.6354 },
-      'quận 7': { latitude: 10.7378, longitude: 106.6621 },
-      'quận 8': { latitude: 10.7248, longitude: 106.6329 },
-      'quận 10': { latitude: 10.7686, longitude: 106.6661 },
-      'quận 11': { latitude: 10.7645, longitude: 106.6433 },
-      'quận 12': { latitude: 10.8671, longitude: 106.6413 },
-      'tân bình': { latitude: 10.8008, longitude: 106.6527 },
-      'bình thạnh': { latitude: 10.8014, longitude: 106.7109 },
-      'phú nhuận': { latitude: 10.7997, longitude: 106.6803 },
-      'gò vấp': { latitude: 10.8291, longitude: 106.6622 },
-      'tân phú': { latitude: 10.7942, longitude: 106.6277 },
-      'bình tân': { latitude: 10.7595, longitude: 106.6026 },
-      'thủ đức': { latitude: 10.8435, longitude: 106.7135 }, // Default Thu Duc to Hiep Phu area
-    };
-
-    // 1. Prepare search queries for cascading geocoding
-    // Split the address components by comma and clean them
-    const addressParts = [formData.street, formData.city, formData.country]
-      .filter(Boolean)
-      .flatMap(part => part.split(','))
-      .map(part => part.trim())
-      .filter(part => part.length > 0);
-
-    const searchQueries = [];
-    
-    // Q1: Exactly as entered (e.g., "13/30 Le Van Viet, Hiep Phu, Ho Chi Minh")
-    if (addressParts.length > 0) {
-      searchQueries.push(addressParts.join(', '));
-    }
-    
-    // Q2: Strip the first part (often complex house numbers/alleys)
-    if (addressParts.length > 1) {
-      searchQueries.push(addressParts.slice(1).join(', '));
-    }
-    
-    // Q3: Strip first two parts (e.g., Ward, District, City)
-    if (addressParts.length > 2) {
-      searchQueries.push(addressParts.slice(2).join(', '));
-    }
-
-    // Q4 (New): Ignore the City/State fields completely if they contradict the Street field.
-    // E.g. Street: "Đông Hòa, Dĩ An", City: "Hồ Chí Minh" -> Search just "Đông Hòa, Dĩ An, Vietnam"
-    const streetParts = formData.street ? formData.street.split(',').map(p => p.trim()).filter(Boolean) : [];
-    if (streetParts.length >= 2) {
-      searchQueries.push(`${streetParts.slice(-2).join(', ')}, ${formData.country || 'Vietnam'}`);
-    } else if (streetParts.length === 1) {
-      searchQueries.push(`${streetParts[0]}, ${formData.country || 'Vietnam'}`);
-    }
-
-    // Q5: Specifically just City/State level fallback
-    if (formData.city) {
-      searchQueries.push(`${formData.city}, ${formData.country || 'Vietnam'}`);
-    }
-
-    console.log("Geocoding cascading queries:", searchQueries);
-
-    // 2. Try queries sequentially until OpenStreetMap returns a valid coordinate
-    for (const query of searchQueries) {
-      if (!query || query.trim() === '' || query === 'Vietnam') continue;
-      
-      try {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=vn`;
-        const geoRes = await fetch(url);
-        
-        if (geoRes.ok) {
-          const geoData = await geoRes.json();
-          if (geoData && geoData.length > 0) {
-            lat = parseFloat(geoData[0].lat);
-            lon = parseFloat(geoData[0].lon);
-            console.log(`✅ Geocoded successfully using query: "${query}" -> [${lat}, ${lon}]`);
-            break; // Stop searching once matched!
-          }
-        }
-      } catch (err) {
-        console.error(`Geocoding failed for query "${query}":`, err);
-      }
-      
-      // Delay slightly between queries to respect Nominatim API rate limits
-      await new Promise(resolve => setTimeout(resolve, 600));
-    }
-
-    // 3. Optional local fallback if ALL external API queries somehow fail
-    if (!lat || !lon) {
-      for (const [key, coords] of Object.entries(mockCoordinates)) {
-        // Use regex to prevent partial matches like 'quận 1' matching 'quận 10'
-        const regexSuffix = /[0-9]$/.test(key) ? '(?![0-9])' : '';
-        const regex = new RegExp(key + regexSuffix, 'i');
-
-        if (regex.test(addressLower)) {
-          lat = coords.latitude;
-          lon = coords.longitude;
-          console.log(`⚠️ Geocoding fell back to local mock data: ${key}`);
-          break; // Match the first specific one
-        }
-      }
-    }
-
-    // 4. Absolute final fallback to Ho Chi Minh City center
-    if (!lat || !lon) {
-      console.log(`❌ All geocoding failed, falling back to HCMC center`);
-      lat = 10.7769; // District 1, HCMC
-      lon = 106.7009;
-    }
-
-    const orderData = {
-      shippingAddress: {
-        fullName: formData.fullName,
-        phone: formData.phone,
-        street: formData.street,
-        city: formData.city,
-        country: formData.country,
-        latitude: lat,
-        longitude: lon,
-      },
-      paymentMethod: formData.paymentMethod,
-      note: formData.note,
-      checkoutRequestKey: createCheckoutRequestKey(),
-      couponCode: couponInfo?.coupon?.code || null,
-    };
-
     try {
-      // ── Phân nhánh theo phương thức thanh toán ──────────────
+      const coordinates = await resolveShippingCoordinates(formData);
+      const orderData = buildOrderPayload({
+        formData,
+        coordinates,
+        couponInfo,
+      });
+
       if (formData.paymentMethod === 'momo') {
         await handleMomoPayment(orderData);
-        // Nếu thành công → window.location.href redirect, hàm kết thúc ở đây
         return;
       }
 
-      // COD / bank_transfer / zalopay / credit_card → flow cũ
       const result = await dispatch(createOrder(orderData)).unwrap();
       toast.success('Order placed successfully!', { id: 'orderProcess' });
       navigate(`/orders/${result._id}`);

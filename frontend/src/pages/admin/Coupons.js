@@ -1,17 +1,20 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useI18n } from '../../i18n';
-import api from '../../services/api';
 import toast from 'react-hot-toast';
+import {
+  createAdminCoupon,
+  deleteAdminCoupon,
+  getAdminCoupons,
+  updateAdminCoupon,
+} from '../../services/adminCouponService';
 import { 
   PencilIcon, 
   TrashIcon, 
   TicketIcon, 
   PlusIcon,
   ArchiveBoxIcon,
-  TrophyIcon,
   CalendarIcon,
-  TagIcon,
-  BanknotesIcon
+  TagIcon
 } from '@heroicons/react/24/outline';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 
@@ -42,8 +45,8 @@ const AdminCoupons = () => {
   const fetchCoupons = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get('/coupons');
-      setCoupons(response.data.data.coupons || []);
+      const couponList = await getAdminCoupons();
+      setCoupons(couponList);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to load coupons');
     } finally {
@@ -61,10 +64,10 @@ const AdminCoupons = () => {
 
     try {
       if (editId) {
-        await api.put(`/coupons/${editId}`, formData);
+        await updateAdminCoupon(editId, formData);
         toast.success(t('adminCoupons.updatedSuccess') || 'Coupon updated successfully');
       } else {
-        await api.post('/coupons', formData);
+        await createAdminCoupon(formData);
         toast.success(t('adminCoupons.createdSuccess') || 'Coupon created successfully');
       }
       setEditId(null);
@@ -97,7 +100,7 @@ const AdminCoupons = () => {
     if (!couponToDelete) return;
 
     try {
-      await api.delete(`/coupons/${couponToDelete._id}`);
+      await deleteAdminCoupon(couponToDelete._id);
       toast.success(t('adminCoupons.deletedSuccess') || 'Coupon deleted successfully');
       setIsDeleteOpen(false);
       setCouponToDelete(null);

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/auth');
+const { protect, customerOnly } = require('../middleware/auth');
 const { mongoIdValidation } = require('../middleware/validate');
 const {
   getWishlist,
@@ -9,7 +9,7 @@ const {
 } = require('../controllers/wishlist');
 
 // All routes require authentication
-router.use(protect);
+router.use(protect, customerOnly);
 
 router.get('/', getWishlist);
 router.post('/:productId', mongoIdValidation('productId'), addToWishlist);
