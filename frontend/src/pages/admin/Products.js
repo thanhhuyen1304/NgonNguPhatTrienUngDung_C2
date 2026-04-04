@@ -39,7 +39,7 @@ const AdminProducts = () => {
       setProducts(response.data.data.products);
       setTotalPages(response.data.data.pagination.pages);
     } catch (error) {
-      toast.error(t('common.error') + ': Failed to load products');
+      toast.error(`${t('common.error')}: Không thể tải danh sách sản phẩm`);
     } finally {
       setLoading(false);
     }
@@ -169,12 +169,12 @@ const AdminProducts = () => {
                             <p className="font-semibold text-gray-900 truncate max-w-xs">
                               {product.name}
                             </p>
-                            <p className="text-sm text-gray-600">{product.brand || 'N/A'}</p>
+                            <p className="text-sm text-gray-600">{product.brand || 'Chưa cập nhật'}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-700">
-                        {product.category?.name || 'N/A'}
+                        {product.category?.name || 'Chưa phân loại'}
                       </td>
                       <td className="px-6 py-4 text-sm font-semibold text-gray-900">
                         {product.price.toLocaleString('vi-VN')} {t('common.currency')}

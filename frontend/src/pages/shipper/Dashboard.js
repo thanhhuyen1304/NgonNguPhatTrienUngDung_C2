@@ -43,28 +43,28 @@ const ShipperDashboard = () => {
 
   const statCards = [
     {
-      title: 'Total Deliveries',
+      title: 'Tổng đơn đã giao',
       value: stats.totalDeliveries,
       icon: TruckIcon,
       color: 'bg-blue-50',
       textColor: 'text-blue-600',
     },
     {
-      title: 'Rating',
+      title: 'Đánh giá',
       value: `${stats.rating}⭐`,
       icon: StarIcon,
       color: 'bg-yellow-50',
       textColor: 'text-yellow-600',
     },
     {
-      title: 'Completed Today',
+      title: 'Hoàn thành hôm nay',
       value: stats.completedToday,
       icon: CheckCircleIcon,
       color: 'bg-green-50',
       textColor: 'text-green-600',
     },
     {
-      title: 'Pending Orders',
+      title: 'Đơn đang xử lý',
       value: stats.pendingOrders,
       icon: TruckIcon,
       color: 'bg-red-50',
@@ -77,14 +77,14 @@ const ShipperDashboard = () => {
       {/* Welcome Section */}
       <div className="bg-white shadow rounded-lg p-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          Welcome, {user?.name}! 👋
+          Xin chào, {user?.name}! 👋
         </h2>
         <p className="text-gray-600">
-          Vehicle: {user?.shipperInfo?.vehicleType || 'Not specified'} |{' '}
-          License: {user?.shipperInfo?.licensePlate || 'Not specified'}
+          Phương tiện: {user?.shipperInfo?.vehicleType || 'Chưa cập nhật'} |{' '}
+          Biển số: {user?.shipperInfo?.licensePlate || 'Chưa cập nhật'}
         </p>
         <p className="text-sm text-gray-500 mt-2">
-          Status: {user?.shipperInfo?.isVerified ? '✅ Verified' : '⏳ Pending Verification'}
+          Trạng thái: {user?.shipperInfo?.isVerified ? '✅ Đã xác minh' : '⏳ Chờ xác minh'}
         </p>
       </div>
 
@@ -110,25 +110,25 @@ const ShipperDashboard = () => {
 
       {/* Quick Actions */}
       <div className="bg-white shadow rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Thao tác nhanh</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button className="bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg p-4 text-center text-blue-600 font-medium transition">
-            📍 View My Route
+            📍 Xem lộ trình của tôi
           </button>
           <button className="bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg p-4 text-center text-green-600 font-medium transition">
-            ✅ Accept New Orders
+            ✅ Nhận đơn mới
           </button>
           <button className="bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg p-4 text-center text-purple-600 font-medium transition">
-            📊 View Statistics
+            📊 Xem thống kê
           </button>
         </div>
       </div>
 
       {/* Recent Activity */}
       <div className="bg-white shadow rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Deliveries</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Đơn giao gần đây</h3>
         <div className="text-center text-gray-500 py-8">
-          No deliveries yet. Start accepting orders to see them here.
+          Chưa có đơn giao nào. Hãy bắt đầu nhận đơn để xem dữ liệu tại đây.
         </div>
       </div>
     </div>

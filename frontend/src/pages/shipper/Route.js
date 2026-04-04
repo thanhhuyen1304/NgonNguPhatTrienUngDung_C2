@@ -37,9 +37,9 @@ const ShipperRoute = () => {
         <div className="w-full h-full bg-gray-200 flex items-center justify-center">
           <div className="text-center">
             <MapIcon className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-            <p className="text-gray-600">Map integration coming soon</p>
+            <p className="text-gray-600">Tính năng bản đồ sẽ sớm được cập nhật</p>
             <p className="text-sm text-gray-500 mt-1">
-              This will show your delivery route and real-time location
+              Khu vực này sẽ hiển thị lộ trình giao hàng và vị trí theo thời gian thực
             </p>
           </div>
         </div>
@@ -48,25 +48,25 @@ const ShipperRoute = () => {
       {/* Route Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white shadow rounded-lg p-4">
-          <p className="text-gray-600 text-sm">Total Stops</p>
+          <p className="text-gray-600 text-sm">Tổng điểm dừng</p>
           <p className="text-3xl font-bold text-gray-900 mt-2">
             {route.totalStops}
           </p>
         </div>
         <div className="bg-white shadow rounded-lg p-4">
-          <p className="text-gray-600 text-sm">Completed</p>
+          <p className="text-gray-600 text-sm">Đã hoàn thành</p>
           <p className="text-3xl font-bold text-green-600 mt-2">
             {route.completedStops}
           </p>
         </div>
         <div className="bg-white shadow rounded-lg p-4">
-          <p className="text-gray-600 text-sm">Distance</p>
+          <p className="text-gray-600 text-sm">Quãng đường</p>
           <p className="text-3xl font-bold text-gray-900 mt-2">
             {route.distance}
           </p>
         </div>
         <div className="bg-white shadow rounded-lg p-4">
-          <p className="text-gray-600 text-sm">Est. Time</p>
+          <p className="text-gray-600 text-sm">Thời gian dự kiến</p>
           <p className="text-3xl font-bold text-gray-900 mt-2">
             {route.estimatedTime}
           </p>
@@ -76,10 +76,10 @@ const ShipperRoute = () => {
       {/* Route Details */}
       <div className="bg-white shadow rounded-lg p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Route Details
+          Chi tiết lộ trình
         </h3>
         <div className="text-center text-gray-500 py-8">
-          No active route. Accept orders to start your delivery route.
+          Chưa có lộ trình hoạt động. Hãy nhận đơn để bắt đầu giao hàng.
         </div>
       </div>
     </div>

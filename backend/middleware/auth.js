@@ -44,27 +44,27 @@ const protect = asyncHandler(async (req, res, next) => {
       if (error.name === 'TokenExpiredError') {
         return res.status(401).json({
           success: false,
-          message: 'Token expired'
+          message: 'Token đã hết hạn'
         });
       } else if (error.name === 'JsonWebTokenError') {
         return res.status(401).json({
           success: false,
-          message: 'Invalid token'
+          message: 'Token không hợp lệ'
         });
       } else if (error.message === 'User not found') {
         return res.status(401).json({
           success: false,
-          message: 'User not found'
+          message: 'Không tìm thấy người dùng'
         });
       } else if (error.message === 'User account is deactivated') {
         return res.status(401).json({
           success: false,
-          message: 'User account is deactivated'
+          message: 'Tài khoản người dùng đã bị vô hiệu hóa'
         });
       } else {
         return res.status(401).json({
           success: false,
-          message: 'Not authorized, token failed'
+          message: 'Không được phép truy cập, token không hợp lệ'
         });
       }
     }
@@ -72,7 +72,7 @@ const protect = asyncHandler(async (req, res, next) => {
 
   return res.status(401).json({
     success: false,
-    message: 'Not authorized, no token'
+    message: 'Không được phép truy cập, thiếu token'
   });
 });
 
@@ -83,7 +83,7 @@ const admin = (req, res, next) => {
   } else {
     return res.status(403).json({
       success: false,
-      message: 'Not authorized as admin'
+      message: 'Bạn không có quyền quản trị viên'
     });
   }
 };
@@ -95,7 +95,7 @@ const shipper = (req, res, next) => {
   } else {
     return res.status(403).json({
       success: false,
-      message: 'Not authorized as shipper'
+      message: 'Bạn không có quyền shipper'
     });
   }
 };

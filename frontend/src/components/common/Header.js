@@ -143,7 +143,7 @@ const Header = () => {
             <Link
               to={isAuthenticated ? "/wishlist" : "/login"}
               className="relative p-2 text-gray-700 hover:text-red-600 transition-colors"
-              title="Wishlist"
+              title={t('nav.wishlist')}
             >
               <HeartIcon className="h-6 w-6" />
               {isAuthenticated && wishlistItemsCount > 0 && (
@@ -220,7 +220,7 @@ const Header = () => {
                         className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
                         onClick={() => setUserDropdown(false)}
                       >
-                        Shipper Dashboard
+                        {t('auth.shipperDashboard')}
                       </Link>
                     )}
                     <hr className="my-2" />
@@ -308,7 +308,7 @@ const Header = () => {
                 className="block py-2 text-gray-700 hover:text-red-600"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                {t('nav.wishlist') || 'Wishlist'}
+                {t('nav.wishlist')}
               </Link>
               {showSupportChat && (
                 <button

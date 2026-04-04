@@ -57,7 +57,7 @@ const OrderDetailPage = () => {
   if (!order) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
-        <p className="text-gray-600">Order not found</p>
+        <p className="text-gray-600">Không tìm thấy đơn hàng</p>
       </div>
     );
   }
@@ -76,9 +76,25 @@ const OrderDetailPage = () => {
   const statusTranslations = {
     pending: 'Chờ xác nhận',
     confirmed: 'Đã xác nhận',
+    processing: 'Đang xử lý',
     shipped: 'Đang giao',
     delivered: 'Đã giao',
     cancelled: 'Đã hủy',
+  };
+
+  const paymentStatusTranslations = {
+    pending: 'Chờ thanh toán',
+    paid: 'Đã thanh toán',
+    failed: 'Thanh toán thất bại',
+    refunded: 'Đã hoàn tiền',
+  };
+
+  const paymentMethodTranslations = {
+    cod: 'Thanh toán khi nhận hàng',
+    momo: 'Ví MoMo',
+    bank_transfer: 'Chuyển khoản ngân hàng',
+    credit_card: 'Thẻ tín dụng',
+    zalopay: 'ZaloPay',
   };
 
   return (
@@ -170,12 +186,12 @@ const OrderDetailPage = () => {
                 <div className="flex justify-between">
                   <span className="text-gray-600">Phương thức:</span>
                   <span className="font-semibold capitalize">
-                    {order.paymentMethod === 'cod' ? 'Thanh toán khi nhận hàng' : order.paymentMethod}
+                    {paymentMethodTranslations[order.paymentMethod] || order.paymentMethod}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Trạng thái:</span>
-                  <span className="font-semibold capitalize">{order.paymentStatus}</span>
+                  <span className="font-semibold capitalize">{paymentStatusTranslations[order.paymentStatus] || order.paymentStatus}</span>
                 </div>
               </div>
             </div>
@@ -218,13 +234,13 @@ const OrderDetailPage = () => {
               </div>
               {order.couponCode && (
                 <div className="flex justify-between text-sm text-green-700">
-                  <span>Coupon</span>
+                  <span>Mã giảm giá</span>
                   <span className="font-semibold">{order.couponCode}</span>
                 </div>
               )}
               {order.discountAmount > 0 && (
                 <div className="flex justify-between text-sm text-green-700">
-                  <span>Discount</span>
+                  <span>Giảm giá</span>
                   <span className="font-semibold">-{order.discountAmount?.toLocaleString('vi-VN')} ₫</span>
                 </div>
               )}

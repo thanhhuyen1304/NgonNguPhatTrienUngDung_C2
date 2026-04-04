@@ -27,7 +27,7 @@ const AdminUsers = () => {
       setUsers(response.data.data.users);
       setTotalPages(response.data.data.pagination.pages);
     } catch (error) {
-      toast.error(t('common.error') + ': Failed to load users');
+      toast.error(`${t('common.error')}: Không thể tải danh sách người dùng`);
     } finally {
       setLoading(false);
     }
@@ -55,7 +55,7 @@ const AdminUsers = () => {
       toast.success(currentStatus ? t('adminUsers.deactivateUser') : t('adminUsers.activateUser'));
       fetchUsers();
     } catch (error) {
-      toast.error(t('common.error') + ': Failed to update status');
+      toast.error(`${t('common.error')}: Không thể cập nhật trạng thái`);
     }
   };
 
@@ -163,19 +163,19 @@ const AdminUsers = () => {
                           {user.role === 'admin' ? (
                             <>
                               <ShieldCheckIcon className="w-4 h-4" />
-                              Admin
+                              Quản trị viên
                             </>
                           ) : user.role === 'shipper' ? (
                             <>
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1-1V9a1 1 0 011-1h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h4a1 1 0 001-1m-6 0a1 1 0 00-1-1H2a1 1 0 00-1 1v3a1 1 0 001 1h1m0-4a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H3a1 1 0 01-1-1v-3z" />
                               </svg>
-                              Shipper
+                               Shipper
                             </>
                           ) : (
                             <>
                               <ShieldExclamationIcon className="w-4 h-4" />
-                              Customer
+                               Khách hàng
                             </>
                           )}
                         </span>
@@ -188,7 +188,7 @@ const AdminUsers = () => {
                               : 'bg-yellow-100 text-yellow-800'
                           }`}
                         >
-                          {user.isEmailVerified ? t('common.success') : t('common.loading')}
+                           {user.isEmailVerified ? 'Đã xác minh' : 'Chưa xác minh'}
                         </span>
                       </td>
                       <td className="px-6 py-4">
