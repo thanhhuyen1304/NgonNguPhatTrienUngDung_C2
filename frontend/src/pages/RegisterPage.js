@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { register, clearError } from '../store/slices/authSlice';
+import { useI18n } from '../i18n/I18nContext';
 import toast from 'react-hot-toast';
 
 const strongPasswordRule = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d\s])(?=\S+$).{8,}$/;
-const strongPasswordHint = 'Password must be at least 8 characters and include uppercase, lowercase, number, special character, and no spaces';
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -18,6 +18,7 @@ const RegisterPage = () => {
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { t } = useI18n();
   const { loading, error } = useSelector((state) => state.auth);
 
   useEffect(() => {
@@ -40,12 +41,12 @@ const RegisterPage = () => {
     e.preventDefault();
 
     if (formData.password !== formData.confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error(t('auth.passwordMismatch'));
       return;
     }
 
     if (!strongPasswordRule.test(formData.password)) {
-      toast.error(strongPasswordHint);
+      toast.error(t('auth.passwordHint'));
       return;
     }
 
@@ -55,7 +56,7 @@ const RegisterPage = () => {
         email: formData.email,
         password: formData.password,
       })).unwrap();
-      toast.success('Registration successful!');
+      toast.success(t('auth.registrationSuccess'));
       navigate('/');
     } catch (error) {
       // Error handled by useEffect
@@ -66,9 +67,9 @@ const RegisterPage = () => {
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Create Account</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t('auth.createAccount')}</h1>
           <p className="text-gray-600 mt-2">
-            Join us and start shopping today
+            {t('auth.registerSubtitle')}
           </p>
         </div>
 
@@ -76,7 +77,7 @@ const RegisterPage = () => {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name
+                {t('auth.fullName')}
               </label>
               <input
                 type="text"
@@ -85,13 +86,13 @@ const RegisterPage = () => {
                 onChange={handleChange}
                 required
                 className="input"
-                placeholder="Enter your full name"
+                  placeholder={t('auth.fullName')}
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email
+                {t('auth.email')}
               </label>
               <input
                 type="email"
@@ -100,13 +101,13 @@ const RegisterPage = () => {
                 onChange={handleChange}
                 required
                 className="input"
-                placeholder="Enter your email"
+                  placeholder={t('auth.email')}
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Password
+                {t('auth.password')}
               </label>
               <div className="relative">
                 <input
@@ -116,7 +117,7 @@ const RegisterPage = () => {
                   onChange={handleChange}
                   required
                   className="input pr-12"
-                  placeholder="Create a password"
+                  placeholder={t('auth.password')}
                 />
                 <button
                   type="button"
@@ -127,13 +128,13 @@ const RegisterPage = () => {
                 </button>
               </div>
               <p className="mt-1 text-xs text-gray-500">
-                Must be at least 8 characters and include uppercase, lowercase, number, special character, and no spaces
+                {t('auth.passwordHint')}
               </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Confirm Password
+                {t('auth.confirmPassword')}
               </label>
               <input
                 type="password"
@@ -142,7 +143,7 @@ const RegisterPage = () => {
                 onChange={handleChange}
                 required
                 className="input"
-                placeholder="Confirm your password"
+                  placeholder={t('auth.confirmPassword')}
               />
             </div>
 
@@ -153,13 +154,13 @@ const RegisterPage = () => {
                 className="h-4 w-4 mt-1 text-blue-600 rounded border-gray-300"
               />
               <span className="ml-2 text-sm text-gray-600">
-                I agree to the{' '}
+                {t('auth.agreeTerms')}{' '}
                 <Link to="/terms" className="text-blue-600 hover:underline">
-                  Terms of Service
+                  {t('auth.terms')}
                 </Link>{' '}
-                and{' '}
+                và{' '}
                 <Link to="/privacy" className="text-blue-600 hover:underline">
-                  Privacy Policy
+                  {t('auth.privacy')}
                 </Link>
               </span>
             </div>
@@ -169,17 +170,17 @@ const RegisterPage = () => {
               disabled={loading}
               className="w-full btn btn-primary py-3 disabled:opacity-50"
             >
-              {loading ? 'Creating account...' : 'Create Account'}
+              {loading ? t('auth.creatingAccount') : t('auth.createAccount')}
             </button>
           </form>
 
           <p className="mt-6 text-center text-sm text-gray-600">
-            Already have an account?{' '}
+            {t('auth.haveAccount')}{' '}
             <Link
               to="/login"
               className="text-blue-600 hover:text-blue-700 font-medium"
             >
-              Login
+              {t('auth.signIn')}
             </Link>
           </p>
         </div>

@@ -5,6 +5,7 @@ import { getFeaturedProducts } from '../store/slices/productSlice';
 import { getCategories } from '../store/slices/categorySlice';
 import ProductCard from '../components/common/ProductCard';
 import { ProductGridSkeleton } from '../components/common/Loading';
+import { useI18n } from '../i18n/I18nContext';
 import { ArrowRightIcon } from '@heroicons/react/24/outline';
 import {
   BookOpenIcon,
@@ -21,15 +22,15 @@ const getCategoryIcon = (categoryName) => {
   
   const iconProps = 'h-8 w-8';
   
-  if (name.includes('book')) {
+  if (name.includes('book') || name.includes('sách')) {
     return <BookOpenIcon className={iconProps} />;
-  } else if (name.includes('clothing') || name.includes('cloth')) {
+  } else if (name.includes('clothing') || name.includes('cloth') || name.includes('thời trang') || name.includes('quần áo')) {
     return <TagIcon className={iconProps} />;
-  } else if (name.includes('electronic')) {
+  } else if (name.includes('electronic') || name.includes('điện tử')) {
     return <ComputerDesktopIcon className={iconProps} />;
-  } else if (name.includes('home') || name.includes('garden')) {
+  } else if (name.includes('home') || name.includes('garden') || name.includes('gia dụng') || name.includes('nhà cửa')) {
     return <SparklesIcon className={iconProps} />;
-  } else if (name.includes('sport')) {
+  } else if (name.includes('sport') || name.includes('thể thao')) {
     return <StarIcon className={iconProps} />;
   } else {
     return <ShoppingBagIcon className={iconProps} />;
@@ -38,6 +39,7 @@ const getCategoryIcon = (categoryName) => {
 
 const HomePage = () => {
   const dispatch = useDispatch();
+  const { t } = useI18n();
   const { featuredProducts, loading: productsLoading } = useSelector(
     (state) => state.products
   );
@@ -54,24 +56,24 @@ const HomePage = () => {
       <section className="relative bg-gradient-to-r from-blue-600 to-blue-800 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="max-w-2xl">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              Discover Amazing Products
-            </h1>
-            <p className="text-lg md:text-xl text-blue-100 mb-8">
-              Shop the latest trends with the best prices. Quality guaranteed with fast delivery.
-            </p>
+              <h1 className="text-4xl md:text-5xl font-bold mb-6">
+                {t('home.heroTitle')}
+              </h1>
+              <p className="text-lg md:text-xl text-blue-100 mb-8">
+                {t('home.heroSubtitle')}
+              </p>
             <div className="flex flex-wrap gap-4">
               <Link
                 to="/shop"
                 className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
               >
-                Shop Now
+                {t('home.shopNow')}
               </Link>
               <Link
                 to="/categories"
                 className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
               >
-                Browse Categories
+                {t('home.browseCategories')}
               </Link>
             </div>
           </div>
@@ -97,10 +99,10 @@ const HomePage = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold text-gray-900">
-                Shop by Category
+                {t('home.shopByCategory')}
               </h2>
               <p className="mt-2 text-gray-600">
-                Find what you're looking for
+                {t('home.findWhatYouNeed')}
               </p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -129,17 +131,17 @@ const HomePage = () => {
           <div className="flex items-center justify-between mb-12">
             <div>
               <h2 className="text-3xl font-bold text-gray-900">
-                Featured Products
+                {t('home.featured')}
               </h2>
               <p className="mt-2 text-gray-600">
-                Handpicked products just for you
+                {t('home.featuredSubtitle')}
               </p>
             </div>
             <Link
               to="/shop"
               className="hidden md:flex items-center text-blue-600 hover:text-blue-700 font-medium"
             >
-              View All
+              {t('home.viewAll')}
               <ArrowRightIcon className="ml-2 h-5 w-5" />
             </Link>
           </div>
@@ -160,7 +162,7 @@ const HomePage = () => {
                   to="/shop"
                   className="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium"
                 >
-                  View All Products
+                  {t('home.viewAllProducts')}
                   <ArrowRightIcon className="ml-2 h-5 w-5" />
                 </Link>
               </div>
@@ -190,10 +192,10 @@ const HomePage = () => {
                 </svg>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Free Shipping
+                {t('home.freeShipping')}
               </h3>
               <p className="text-gray-600">
-                Free shipping on orders over $50
+                {t('home.freeShippingDesc')}
               </p>
             </div>
             <div className="text-center p-6">
@@ -213,10 +215,10 @@ const HomePage = () => {
                 </svg>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Secure Payment
+                {t('home.securePayment')}
               </h3>
               <p className="text-gray-600">
-                100% secure payment methods
+                {t('home.securePaymentDesc')}
               </p>
             </div>
             <div className="text-center p-6">
@@ -236,10 +238,10 @@ const HomePage = () => {
                 </svg>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Easy Returns
+                {t('home.easyReturns')}
               </h3>
               <p className="text-gray-600">
-                30-day return policy
+                {t('home.easyReturnsDesc')}
               </p>
             </div>
           </div>
@@ -250,22 +252,22 @@ const HomePage = () => {
       <section className="py-16 bg-blue-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold text-white mb-4">
-            Subscribe to Our Newsletter
+            {t('home.newsletterTitle')}
           </h2>
           <p className="text-blue-100 mb-8 max-w-2xl mx-auto">
-            Get the latest updates on new products and upcoming sales
+            {t('home.newsletterSubtitle')}
           </p>
           <form className="max-w-md mx-auto flex gap-4">
             <input
               type="email"
-              placeholder="Enter your email"
+              placeholder={t('home.newsletterPlaceholder')}
               className="flex-1 px-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none"
             />
             <button
               type="submit"
               className="bg-gray-900 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition-colors"
             >
-              Subscribe
+              {t('home.newsletterButton')}
             </button>
           </form>
         </div>

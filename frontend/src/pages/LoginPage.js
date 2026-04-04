@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { login, clearError } from '../store/slices/authSlice';
 import { getApiOrigin } from '../services/api';
+import { useI18n } from '../i18n/I18nContext';
 import toast from 'react-hot-toast';
 
 const LoginPage = () => {
@@ -14,6 +15,7 @@ const LoginPage = () => {
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   const location = useLocation();
   const { loading, error } = useSelector((state) => state.auth);
@@ -44,7 +46,7 @@ const LoginPage = () => {
 
     try {
       const result = await dispatch(login(formData)).unwrap();
-      toast.success('Login successful!');
+      toast.success(t('auth.loginSuccess'));
       
       // Role-based redirection
       if (result.role === 'admin') {
@@ -64,9 +66,9 @@ const LoginPage = () => {
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Welcome Back</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t('auth.welcomeBack')}</h1>
           <p className="text-gray-600 mt-2">
-            Please enter your credentials to login
+            {t('auth.loginSubtitle')}
           </p>
         </div>
 
@@ -94,7 +96,7 @@ const LoginPage = () => {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            Continue with Google
+            {t('auth.continueWithGoogle')}
           </button>
 
           <div className="relative my-6">
@@ -103,7 +105,7 @@ const LoginPage = () => {
             </div>
             <div className="relative flex justify-center text-sm">
               <span className="px-4 bg-white text-gray-500">
-                Or continue with email
+                {t('auth.orContinueWithEmail')}
               </span>
             </div>
           </div>
@@ -115,7 +117,7 @@ const LoginPage = () => {
                 htmlFor="email"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Email
+                {t('auth.email')}
               </label>
               <input
                 type="email"
@@ -125,7 +127,7 @@ const LoginPage = () => {
                 onChange={handleChange}
                 required
                 className="input"
-                placeholder="Enter your email"
+                  placeholder={t('auth.email')}
               />
             </div>
 
@@ -134,7 +136,7 @@ const LoginPage = () => {
                 htmlFor="password"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Password
+                {t('auth.password')}
               </label>
               <div className="relative">
                 <input
@@ -145,7 +147,7 @@ const LoginPage = () => {
                   onChange={handleChange}
                   required
                   className="input pr-12"
-                  placeholder="Enter your password"
+                  placeholder={t('auth.password')}
                 />
                 <button
                   type="button"
@@ -197,13 +199,13 @@ const LoginPage = () => {
                   type="checkbox"
                   className="h-4 w-4 text-blue-600 rounded border-gray-300"
                 />
-                <span className="ml-2 text-sm text-gray-600">Remember me</span>
+                <span className="ml-2 text-sm text-gray-600">{t('auth.rememberMe')}</span>
               </label>
               <Link
                 to="/forgot-password"
                 className="text-sm text-blue-600 hover:text-blue-700"
               >
-                Forgot password?
+                {t('auth.forgotPassword')}
               </Link>
             </div>
 
@@ -212,17 +214,17 @@ const LoginPage = () => {
               disabled={loading}
               className="w-full btn btn-primary py-3 disabled:opacity-50"
             >
-              {loading ? 'Logging in...' : 'Login'}
+              {loading ? 'Đang đăng nhập...' : t('auth.signIn')}
             </button>
           </form>
 
           <p className="mt-6 text-center text-sm text-gray-600">
-            Don't have an account?{' '}
+            {t('auth.noAccount')}{' '}
             <Link
               to="/register"
               className="text-blue-600 hover:text-blue-700 font-medium"
             >
-              Sign up
+              {t('auth.signUp')}
             </Link>
           </p>
         </div>
