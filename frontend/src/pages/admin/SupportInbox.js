@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   ChatBubbleLeftRightIcon,
@@ -11,7 +12,8 @@ import {
   CheckCircleIcon,
   EnvelopeIcon,
   UserCircleIcon,
-  SignalIcon
+  SignalIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
 import api from '../../services/api';
 import SupportConversationList from '../../components/support/SupportConversationList';
@@ -30,9 +32,11 @@ import {
 } from '../../components/support/supportUtils';
 
 const AdminSupportInbox = () => {
+  const { id: urlId } = useParams();
+  const navigate = useNavigate();
   const [conversations, setConversations] = useState([]);
   const [messages, setMessages] = useState([]);
-  const [selectedConversationId, setSelectedConversationId] = useState('');
+  const [selectedConversationId, setSelectedConversationId] = useState(urlId || '');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [draft, setDraft] = useState('');
@@ -41,6 +45,7 @@ const AdminSupportInbox = () => {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const attachmentsRef = useRef([]);
 
   const cleanupAttachments = useCallback((items) => {
@@ -159,13 +164,9 @@ const AdminSupportInbox = () => {
         });
 
       setConversations(nextConversations);
-      setSelectedConversationId((currentConversationId) => {
-        if (currentConversationId && nextConversations.some((conversation) => conversation._id === currentConversationId)) {
-          return currentConversationId;
-        }
-
-        return nextConversations[0]?._id || '';
-      });
+      if (nextConversations.length > 0 && !urlId) {
+        setSelectedConversationId(nextConversations[0]._id);
+      }
       return nextConversations;
     } catch (error) {
       if (!options.silent) {
@@ -182,6 +183,17 @@ const AdminSupportInbox = () => {
   useEffect(() => {
     fetchConversations();
   }, [fetchConversations]);
+
+  useEffect(() => {
+    if (urlId) {
+      setSelectedConversationId(urlId);
+    }
+  }, [urlId]);
+
+  const handleSelectConversation = (id) => {
+    setSelectedConversationId(id);
+    navigate(`/admin/support/${id}`);
+  };
 
   useEffect(() => {
     if (selectedConversationId) {
@@ -217,13 +229,13 @@ const AdminSupportInbox = () => {
     const remainingSlots = Math.max(0, 3 - attachments.length);
 
     if (remainingSlots === 0) {
-      toast.error('Mỗi tin nhắn chỉ đính kèm tối đa 3 ảnh');
+      toast.error('Mỗi tin nhắn chỉ đính kèm tối đa 3 tệp');
       event.target.value = '';
       return;
     }
 
     if (files.length > remainingSlots) {
-      toast.error('Mỗi tin nhắn chỉ đính kèm tối đa 3 ảnh');
+      toast.error('Mỗi tin nhắn chỉ đính kèm tối đa 3 tệp');
     }
 
     const nextAttachments = files.slice(0, remainingSlots).map(createAttachmentPreview);
@@ -324,8 +336,43 @@ const AdminSupportInbox = () => {
     }
   };
 
+  const handleDeleteConversation = async () => {
+    if (!selectedConversationId || deleting) {
+      return;
+    }
+
+    const confirmMessage = `⚠️ Xóa vĩnh viễn đoạn chat?\n\nBạn có chắc muốn xóa cuộc trò chuyện với ${selectedConversation?.user?.name || 'khách hàng này'} không?\n\n• Tất cả tin nhắn và hình ảnh sẽ bị xóa vĩnh viễn\n• Không thể khôi phục dữ liệu sau khi xóa`;
+    
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      setDeleting(true);
+      await api.delete(`/support/admin/conversations/${selectedConversationId}`);
+      
+      const deletedId = selectedConversationId;
+      setConversations((prev) => prev.filter((c) => c._id !== deletedId));
+      
+      // Auto-select next or empty
+      const remaining = conversations.filter((c) => c._id !== deletedId);
+      if (remaining.length > 0) {
+        handleSelectConversation(remaining[0]._id);
+      } else {
+        setSelectedConversationId('');
+        navigate('/admin/support');
+      }
+
+      toast.success('Đã xóa cuộc trò chuyện');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Không thể xóa cuộc trò chuyện');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8 animate-in fade-in duration-500">
+    <div className="max-w-7xl mx-auto px-4 py-4 space-y-6 animate-in fade-in duration-500">
       {/* Header section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
@@ -364,7 +411,7 @@ const AdminSupportInbox = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[380px,minmax(0,1fr)] lg:h-[720px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[380px,minmax(0,1fr)] lg:h-[calc(100vh-260px)] min-h-[600px]">
         {/* Sidebar: Conversation List */}
         <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full">
           <div className="p-6 border-b border-gray-50 space-y-4">
@@ -405,7 +452,7 @@ const AdminSupportInbox = () => {
             <SupportConversationList
               conversations={filteredConversations}
               selectedConversationId={selectedConversationId}
-              onSelect={setSelectedConversationId}
+              onSelect={handleSelectConversation}
               loading={loadingConversations}
             />
           </div>
@@ -458,6 +505,15 @@ const AdminSupportInbox = () => {
                     <option value="open">Keep Active</option>
                     <option value="closed">Resolve Issue</option>
                   </select>
+
+                  <button
+                    onClick={handleDeleteConversation}
+                    disabled={deleting}
+                    className="p-2.5 rounded-xl bg-red-50 text-red-500 border border-red-100 hover:bg-red-100 transition-colors disabled:opacity-50 shadow-sm"
+                    title="Delete Conversation"
+                  >
+                    <TrashIcon className="w-5 h-5" />
+                  </button>
                 </div>
               )}
             </div>
@@ -474,51 +530,25 @@ const AdminSupportInbox = () => {
             />
           </div>
 
-          {/* Composer Area */}
-          <div className="p-6 bg-gray-50/50 border-t border-gray-50">
-             <SupportChatComposer
-              value={draft}
-              onChange={setDraft}
-              onSubmit={handleSendMessage}
-              attachments={attachments}
-              onFileChange={handleAttachmentChange}
-              onRemoveAttachment={handleRemoveAttachment}
-              disabled={!selectedConversationId || selectedConversation?.status === 'closed'}
-              disabledMessage={!selectedConversationId
-                ? 'System locked. Establish channel connection first.'
-                : selectedConversation?.status === 'closed'
-                  ? 'Channel archived. Reactive ticket to resume broadcast.'
-                  : ''}
-              sending={sending}
-              placeholder="Type professional response..."
-            />
-          </div>
+          <SupportChatComposer
+            value={draft}
+            onChange={setDraft}
+            onSubmit={handleSendMessage}
+            attachments={attachments}
+            onFileChange={handleAttachmentChange}
+            onRemoveAttachment={handleRemoveAttachment}
+            disabled={!selectedConversationId || selectedConversation?.status === 'closed'}
+            disabledMessage={!selectedConversationId
+              ? 'System locked. Establish channel connection first.'
+              : selectedConversation?.status === 'closed'
+                ? 'Channel archived. Reactive ticket to resume broadcast.'
+                : ''}
+            sending={sending}
+            placeholder="Type professional response..."
+          />
         </div>
       </div>
 
-      {/* Strategic Footer Card */}
-      <div className="bg-gradient-to-br from-gray-900 to-red-950 rounded-[40px] p-12 text-white shadow-2xl relative overflow-hidden group">
-         <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -mr-40 -mt-40 blur-3xl group-hover:bg-white/10 transition-all duration-700" />
-         <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
-            <div className="p-6 bg-white/10 rounded-[32px] backdrop-blur-xl border border-white/10">
-               <TrophyIcon className="w-12 h-12 text-red-400" />
-            </div>
-            <div className="text-center md:text-left">
-               <h4 className="text-3xl font-black italic tracking-tighter uppercase mb-1">Support Excellence</h4>
-               <p className="text-red-100/70 text-base font-medium max-w-2xl leading-relaxed italic">
-                 Providing rapid, high-quality resolutions is the <span className="text-white font-black underline decoration-red-500">number one driver</span> of user satisfaction. Every interaction is an opportunity to strengthen your brand loyalty.
-               </p>
-            </div>
-            <div className="md:ml-auto">
-               <button 
-                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                className="px-10 py-4 bg-white text-gray-900 rounded-[22px] font-black text-xs uppercase tracking-widest hover:bg-red-50 transition-all active:scale-95 shadow-xl shadow-black/20"
-               >
-                 Review KPIs
-               </button>
-            </div>
-         </div>
-      </div>
     </div>
   );
 };

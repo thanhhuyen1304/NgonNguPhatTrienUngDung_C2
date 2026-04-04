@@ -5,7 +5,7 @@ import {
   ChatBubbleLeftRightIcon,
   MinusIcon,
   PaperAirplaneIcon,
-  PhotoIcon,
+  PaperClipIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import api from '../../services/api';
@@ -136,13 +136,13 @@ const SupportWidget = () => {
     const remainingSlots = Math.max(0, 3 - attachments.length);
 
     if (remainingSlots === 0) {
-      toast.error('Mỗi tin nhắn chỉ đính kèm tối đa 3 ảnh');
+      toast.error('Mỗi tin nhắn chỉ đính kèm tối đa 3 tệp');
       event.target.value = '';
       return;
     }
 
     if (files.length > remainingSlots) {
-      toast.error('Mỗi tin nhắn chỉ đính kèm tối đa 3 ảnh');
+      toast.error('Mỗi tin nhắn chỉ đính kèm tối đa 3 tệp');
     }
 
     const nextAttachments = files.slice(0, remainingSlots).map(createAttachmentPreview);
@@ -240,12 +240,21 @@ const SupportWidget = () => {
               {attachments.length > 0 && (
                 <div className="mb-4 grid grid-cols-3 gap-2">
                   {attachments.map((attachment) => (
-                    <div key={attachment.id} className="relative overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
-                      <img src={attachment.previewUrl} alt={attachment.name} className="h-20 w-full object-cover" />
+                    <div key={attachment.id} className="relative overflow-hidden rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center h-20">
+                      {attachment.isImage ? (
+                        <img src={attachment.previewUrl} alt={attachment.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center p-2 text-gray-400">
+                          <PaperClipIcon className="h-6 w-6" />
+                          <span className="mt-1 text-[8px] font-medium truncate w-full text-center px-1">
+                            {attachment.file.name}
+                          </span>
+                        </div>
+                      )}
                       <button
                         type="button"
                         onClick={() => handleRemoveAttachment(attachment.id)}
-                        className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white"
+                        className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white hover:bg-black/80 transition-colors"
                       >
                         <XMarkIcon className="h-3 w-3" />
                       </button>
@@ -258,7 +267,7 @@ const SupportWidget = () => {
                 <textarea
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
-                  rows={3}
+                  rows={2}
                   disabled={disabled}
                   placeholder={conversation?.status === 'closed' ? 'Cuộc trò chuyện đã đóng' : 'Nhập nội dung cần hỗ trợ...'}
                   className="w-full resize-none rounded-xl border border-gray-300 px-3 py-3 text-sm outline-none focus:border-transparent focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
@@ -266,11 +275,10 @@ const SupportWidget = () => {
 
                 <div className="mt-3 flex items-center justify-between gap-3">
                   <label className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${disabled ? 'bg-gray-100 text-gray-400' : 'cursor-pointer bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
-                    <PhotoIcon className="h-5 w-5" />
-                    Ảnh
+                    <PaperClipIcon className="h-5 w-5" />
+                    Tệp
                     <input
                       type="file"
-                      accept="image/*"
                       multiple
                       disabled={disabled}
                       onChange={handleAttachmentChange}

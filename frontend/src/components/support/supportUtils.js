@@ -1,3 +1,5 @@
+import { getApiOrigin } from '../../services/api';
+
 export const getResponsePayload = (response) => response?.data?.data ?? response?.data ?? null;
 
 export const extractConversation = (payload) => {
@@ -65,17 +67,34 @@ export const normalizeAttachment = (attachment, index = 0) => {
     return null;
   }
 
+  const apiOrigin = getApiOrigin();
+
+  const ensureAbsoluteUrl = (url) => {
+    if (!url) {
+      return '';
+    }
+
+    if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) {
+      return url;
+    }
+
+    const normalizedUrl = url.startsWith('/') ? url : `/${url}`;
+    return `${apiOrigin}${normalizedUrl}`;
+  };
+
   if (typeof attachment === 'string') {
-      return {
-        id: `${attachment}-${index}`,
-        url: attachment,
-        originalName: 'Tệp đính kèm',
-        mimeType: '',
-        isImage: isImageUrl(attachment),
-      };
+    const url = ensureAbsoluteUrl(attachment);
+    return {
+      id: `${attachment}-${index}`,
+      url,
+      originalName: 'Tệp đính kèm',
+      mimeType: '',
+      isImage: isImageUrl(url),
+    };
   }
 
-  const url = attachment.url || attachment.secure_url || attachment.path || '';
+  const rawUrl = attachment.url || attachment.secure_url || attachment.path || '';
+  const url = ensureAbsoluteUrl(rawUrl);
   const mimeType = attachment.mimeType || attachment.type || '';
 
   return {

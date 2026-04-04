@@ -466,29 +466,6 @@ const AdminOrders = () => {
         )}
       </div>
 
-      {/* Strategic Footer Card */}
-      <div className="bg-gradient-to-br from-indigo-900 to-emerald-900 rounded-[40px] p-12 text-white shadow-2xl relative overflow-hidden group">
-         <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -mr-40 -mt-40 blur-3xl group-hover:bg-white/10 transition-all duration-700" />
-         <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
-            <div className="p-6 bg-white/10 rounded-[32px] backdrop-blur-xl border border-white/10">
-               <TrophyIcon className="w-12 h-12 text-emerald-400" />
-            </div>
-            <div className="text-center md:text-left">
-               <h4 className="text-3xl font-black italic tracking-tighter">Logistics Performance</h4>
-               <p className="text-emerald-100/70 text-base mt-2 font-medium max-w-2xl leading-relaxed">
-                 Efficient fulfillment increases customer loyalty by <span className="text-white font-black underline decoration-emerald-400">over 65%</span>. Monitor delivery times and inventory turnover to optimize your business operations.
-               </p>
-            </div>
-            <div className="md:ml-auto">
-               <button 
-                onClick={() => navigate('/admin/dashboard')}
-                className="px-10 py-4 bg-white text-gray-900 rounded-[22px] font-black text-xs uppercase tracking-widest hover:bg-emerald-50 transition-all active:scale-95 shadow-xl shadow-black/20"
-               >
-                 Live Analytics
-               </button>
-            </div>
-         </div>
-      </div>
       {/* Confirmation Dialog */}
       <ConfirmDialog
         isOpen={confirmDialog.open}

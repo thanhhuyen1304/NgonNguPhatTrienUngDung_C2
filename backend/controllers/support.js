@@ -3,6 +3,7 @@ const SupportConversation = require('../schemas/SupportConversation');
 const SupportMessage = require('../schemas/SupportMessage');
 const { AppError } = require('../middleware/error');
 const { sendNotification } = require('../socket/socketServer');
+const { deleteImage } = require('../config/cloudinary');
 const {
   ensureConversationAccess,
   populateConversation,
@@ -168,6 +169,40 @@ const updateConversationStatus = asyncHandler(async (req, res) => {
   res.json({ success: true, data: { conversation: populatedConversation } });
 });
 
+const deleteAdminConversation = asyncHandler(async (req, res) => {
+  const conversation = await SupportConversation.findById(req.params.id);
+
+  if (!conversation) {
+    throw new AppError('Support conversation not found', 404);
+  }
+
+  // Find all messages to clean up attachments
+  const messages = await SupportMessage.find({ conversation: conversation._id });
+
+  // Cleanup Cloudinary attachments
+  for (const message of messages) {
+    if (message.attachments && message.attachments.length > 0) {
+      for (const attachment of message.attachments) {
+        if (attachment.publicId) {
+          try {
+            await deleteImage(attachment.publicId);
+          } catch (error) {
+            console.error(`Failed to delete support attachment ${attachment.publicId}:`, error);
+          }
+        }
+      }
+    }
+  }
+
+  // Delete all messages
+  await SupportMessage.deleteMany({ conversation: conversation._id });
+
+  // Delete the conversation
+  await SupportConversation.findByIdAndDelete(req.params.id);
+
+  res.json({ success: true, message: 'Support conversation deleted successfully' });
+});
+
 module.exports = {
   getMyConversation,
   getConversationMessages,
@@ -178,4 +213,5 @@ module.exports = {
   sendAdminMessage,
   markAdminConversationRead,
   updateConversationStatus,
+  deleteAdminConversation,
 };

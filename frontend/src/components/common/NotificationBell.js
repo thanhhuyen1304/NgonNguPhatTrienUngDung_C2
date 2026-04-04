@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { 
-  BellIcon, 
-  CheckIcon, 
-  TrashIcon, 
-  ShoppingBagIcon, 
+import {
+  BellIcon,
+  CheckIcon,
+  TrashIcon,
+  ShoppingBagIcon,
   ChatBubbleLeftRightIcon,
   InformationCircleIcon
 } from '@heroicons/react/24/outline';
@@ -18,7 +18,7 @@ const NotificationBell = () => {
   const dropdownRef = useRef(null);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  
+
   const { notifications, unreadCount, loading } = useSelector((state) => state.notifications);
   const { user } = useSelector((state) => state.auth);
 
@@ -47,6 +47,13 @@ const NotificationBell = () => {
       dispatch(markRead(notification._id));
     }
     setIsOpen(false);
+
+    // Special handling for support notifications for users
+    if (notification.type === 'support' && user?.role === 'user') {
+      window.dispatchEvent(new Event('open-support-chat'));
+      return;
+    }
+
     if (notification.link) {
       navigate(notification.link);
     }
@@ -64,12 +71,12 @@ const NotificationBell = () => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors relative"
+        className="p-2 text-gray-700 hover:text-blue-600 transition-colors relative group"
       >
-        <BellIcon className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+        <BellIcon className="w-6 h-6 text-gray-700 group-hover:text-blue-600 transition-colors" />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full ring-2 ring-white dark:ring-gray-900 animate-pulse">
-            {unreadCount > 99 ? '99+' : unreadCount}
+          <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
+            {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>

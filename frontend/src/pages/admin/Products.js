@@ -334,29 +334,6 @@ const AdminProducts = () => {
         )}
       </div>
 
-      {/* Strategic Footer Card */}
-      <div className="bg-gradient-to-br from-gray-900 to-blue-900 rounded-[32px] p-10 text-white shadow-2xl relative overflow-hidden group">
-         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-blue-500/20 transition-all duration-700" />
-         <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
-            <div className="p-5 bg-white/10 rounded-3xl backdrop-blur-xl border border-white/10">
-               <TrophyIcon className="w-10 h-10 text-blue-400" />
-            </div>
-            <div className="text-center md:text-left">
-               <h4 className="text-2xl font-black italic tracking-tight">Strategic Catalog Management</h4>
-               <p className="text-blue-100/70 text-sm mt-2 font-medium max-w-xl">
-                 Optimized product listings with accurate inventory counts lead to a <span className="text-white font-black underline decoration-blue-500">30% faster checkout process</span>. Ensure all your entries have high-quality images and clear descriptions.
-               </p>
-            </div>
-            <div className="md:ml-auto">
-               <button 
-                onClick={() => navigate('/admin/dashboard')}
-                className="px-8 py-3 bg-white text-gray-900 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-50 transition-all active:scale-95 shadow-lg shadow-black/20"
-               >
-                 View Analytics
-               </button>
-            </div>
-         </div>
-      </div>
 
       {/* Modals & Dialogs */}
       <ProductDetailModal 

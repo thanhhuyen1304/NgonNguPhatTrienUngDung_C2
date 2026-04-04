@@ -3,19 +3,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../../store/slices/authSlice';
 import Header from '../common/Header';
-import {
-  ChartBarIcon,
-  ShoppingBagIcon,
-  TagIcon,
-  TicketIcon,
-  ClipboardDocumentListIcon,
-  UsersIcon,
-  ChatBubbleLeftRightIcon,
-  ArrowLeftOnRectangleIcon,
-  HomeIcon,
-  XMarkIcon
-} from '@heroicons/react/24/outline';
-import NotificationBell from '../common/NotificationBell';
+import { ChartBarIcon, ShoppingBagIcon, TagIcon, TicketIcon, ClipboardDocumentListIcon, UsersIcon, ChatBubbleLeftRightIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -84,7 +72,11 @@ const AdminLayout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Header onSidebarToggle={() => setSidebarOpen(true)} />
+      
+      <div className="flex-1 relative">
+        {/* Sidebars and Content overlay container */}
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -100,18 +92,7 @@ const AdminLayout = () => {
         style={{ top: '64px' }}
       >
         <div className="flex h-full flex-col">
-          {/* Mobile Header */}
-          <div className="flex h-16 items-center justify-between px-4 border-b border-gray-200">
-            <Link to="/" className="text-xl font-bold text-blue-600">
-              Thương mại điện tử
-            </Link>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="p-2 rounded-md text-gray-400 hover:text-gray-600"
-            >
-              <XMarkIcon className="w-6 h-6" />
-            </button>
-          </div>
+          {/* Mobile Navigation */}
 
           {/* Mobile Navigation */}
           <nav className="flex-1 px-2 py-4 space-y-1">
@@ -161,12 +142,7 @@ const AdminLayout = () => {
         style={{ top: '64px' }}
       >
         <div className="flex min-h-0 flex-1 flex-col bg-white border-r border-gray-200">
-          {/* Desktop Header */}
-          <div className="flex h-16 items-center px-4 border-b border-gray-200">
-            <Link to="/" className="text-xl font-bold text-blue-600">
-              Thương mại điện tử
-            </Link>
-          </div>
+          {/* Desktop Navigation */}
 
           {/* Desktop Navigation */}
           <nav className="flex-1 px-2 py-4 space-y-1">
@@ -210,39 +186,14 @@ const AdminLayout = () => {
       </div>
 
       {/* Main content */}
-      <div className="lg:pl-64">
-        {/* Top bar */}
-        <div className="sticky top-0 z-30 flex h-16 flex-shrink-0 bg-white shadow-sm border-b border-gray-200">
-          <button
-            type="button"
-            className="px-4 text-gray-500 hover:text-gray-700 focus:outline-none lg:hidden"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-          
-          <div className="flex flex-1 justify-between items-center px-4">
-            <div>
-              <h1 className="text-lg font-semibold text-gray-900">{getPageTitle()}</h1>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-               <NotificationBell />
-               <span className="text-sm font-medium text-gray-900">
-                 {user?.name || 'Quản trị viên'}
-               </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Page content */}
+      {/* Main content */}
+      <div className="lg:pl-64 flex-1">
         <main className="p-6">
           <Outlet />
         </main>
       </div>
     </div>
+  </div>
   );
 };
 

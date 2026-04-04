@@ -269,17 +269,6 @@ const AdminCategories = () => {
              )}
           </div>
           
-          <div className="mt-8 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-8 text-white shadow-xl shadow-blue-200">
-             <div className="flex items-center gap-4">
-                <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-md">
-                   <TrophyIcon className="w-8 h-8" />
-                </div>
-                <div>
-                   <h4 className="text-xl font-black">Simplified Catalog</h4>
-                   <p className="text-blue-100 text-sm mt-1">A flat category structure makes it easier for customers to discover products quickly.</p>
-                </div>
-             </div>
-          </div>
         </div>
       </div>
 

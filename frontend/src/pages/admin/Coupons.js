@@ -400,21 +400,6 @@ const AdminCoupons = () => {
              )}
            </div>
 
-           {/* Strategic Insight Card */}
-           <div className="mt-8 bg-gradient-to-br from-indigo-900 to-purple-900 rounded-[32px] p-10 text-white shadow-2xl relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-white/10 transition-all duration-700" />
-              <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
-                 <div className="p-5 bg-white/10 rounded-3xl backdrop-blur-xl border border-white/10">
-                    <TrophyIcon className="w-10 h-10 text-indigo-300" />
-                 </div>
-                 <div className="text-center md:text-left">
-                    <h4 className="text-2xl font-black italic tracking-tight">Promotional Strategy</h4>
-                    <p className="text-indigo-100/70 text-sm mt-2 font-medium max-w-xl">
-                      Dynamic coupons can increase conversion by <span className="text-white font-black underline decoration-indigo-400">up to 40%</span>. Timed offers create urgency, while usage limits ensure campaign sustainability.
-                    </p>
-                 </div>
-              </div>
-           </div>
         </div>
       </div>
 

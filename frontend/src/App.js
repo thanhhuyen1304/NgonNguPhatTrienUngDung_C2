@@ -140,6 +140,7 @@ function App() {
             <Route path="users" element={<AdminUsers />} />
             <Route path="coupons" element={<AdminCoupons />} />
             <Route path="support" element={<AdminSupportInbox />} />
+            <Route path="support/:id" element={<AdminSupportInbox />} />
           </Route>
         </Route>
       </Routes>

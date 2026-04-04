@@ -18,6 +18,7 @@ const {
   sendAdminMessage,
   markAdminConversationRead,
   updateConversationStatus,
+  deleteAdminConversation,
 } = require('../controllers/support');
 
 const customerOnly = (req, res, next) => {
@@ -63,5 +64,6 @@ router.patch(
   supportConversationStatusValidation,
   updateConversationStatus
 );
+router.delete('/admin/conversations/:id', admin, mongoIdValidation('id'), deleteAdminConversation);
 
 module.exports = router;
