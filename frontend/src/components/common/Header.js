@@ -14,8 +14,9 @@ import {
   ChevronDownIcon,
   HeartIcon,
 } from '@heroicons/react/24/outline';
+import NotificationBell from './NotificationBell';
 
-const Header = () => {
+const Header = ({ onSidebarToggle }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoriesDropdown, setCategoriesDropdown] = useState(false);
@@ -62,6 +63,17 @@ const Header = () => {
     <header className="bg-white shadow-sm sticky top-0 z-50">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
+          {/* Sidebar Toggle (Mobile) */}
+          {onSidebarToggle && (
+            <button
+              type="button"
+              className="px-4 text-gray-500 hover:text-gray-700 focus:outline-none lg:hidden"
+              onClick={onSidebarToggle}
+            >
+              <Bars3Icon className="h-6 w-6" />
+            </button>
+          )}
+
           {/* Logo */}
           <div className="flex items-center mr-8">
             <Link to="/" className="flex-shrink-0 flex items-center">
@@ -83,7 +95,7 @@ const Header = () => {
             >
               {t('nav.shop')}
             </Link>
-            
+
             {/* Categories Dropdown */}
             <div className="relative">
               <button
@@ -153,6 +165,9 @@ const Header = () => {
               )}
             </Link>
 
+            {/* Notifications */}
+            {isAuthenticated && <NotificationBell />}
+
             {/* Cart */}
             <Link
               to="/cart"
@@ -174,11 +189,11 @@ const Header = () => {
                   onClick={() => setUserDropdown(!userDropdown)}
                   onBlur={() => setTimeout(() => setUserDropdown(false), 200)}
                 >
-                    {user?.avatar ? (
-                      <img src={user.avatar} alt={user?.name} className="h-8 w-8 rounded-full object-cover" />
-                    ) : (
-                      <UserIcon className="h-6 w-6" />
-                    )}
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt={user?.name} className="h-8 w-8 rounded-full object-cover" />
+                  ) : (
+                    <UserIcon className="h-6 w-6" />
+                  )}
                 </button>
                 {userDropdown && (
                   <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50">
@@ -205,15 +220,6 @@ const Header = () => {
                         Hỗ trợ
                       </button>
                     )}
-                    {user?.role === 'admin' && (
-                      <Link
-                        to="/admin"
-                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
-                        onClick={() => setUserDropdown(false)}
-                      >
-                        {t('nav.admin')}
-                      </Link>
-                    )}
                     {user?.role === 'shipper' && (
                       <Link
                         to="/shipper"
@@ -221,6 +227,15 @@ const Header = () => {
                         onClick={() => setUserDropdown(false)}
                       >
                         {t('auth.shipperDashboard')}
+                      </Link>
+                    )}
+                    {user?.role === 'admin' && (
+                      <Link
+                        to="/admin"
+                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                        onClick={() => setUserDropdown(false)}
+                      >
+                        {t('nav.admin')}
                       </Link>
                     )}
                     <hr className="my-2" />

@@ -31,14 +31,8 @@ const GoogleCallback = () => {
           const result = await dispatch(bootstrapAuth()).unwrap();
           toast.success('Login successful!');
           
-          // Role-based redirection
-          if (result.role === 'admin') {
-            navigate('/admin');
-          } else if (result.role === 'shipper') {
-            navigate('/shipper');
-          } else {
-            navigate('/');
-          }
+          // Always navigate to the homepage '/'
+          navigate('/');
         } catch (err) {
           toast.error(err || 'Authentication failed');
           navigate('/login');

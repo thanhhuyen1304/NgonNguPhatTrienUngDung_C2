@@ -273,7 +273,8 @@
     "active": "Hoạt động",
     "inactive": "Vô hiệu",
     "deleteConfirm": "Bạn chắc chắn muốn xóa sản phẩm này?",
-    "deletedSuccess": "Sản phẩm đã xóa"
+    "deletedSuccess": "Sản phẩm đã xóa",
+    "productDetails": "Chi tiết sản phẩm"
   },
   "adminCategories": {
     "title": "Quản lý danh mục",

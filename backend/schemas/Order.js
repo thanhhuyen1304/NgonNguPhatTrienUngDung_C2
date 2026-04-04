@@ -120,11 +120,6 @@ const orderSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
-    shipper: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      default: null,
-    },
     currentLocation: {
       latitude: { type: Number },
       longitude: { type: Number },

@@ -8,12 +8,12 @@ const {
   logValidationFailure, 
   getStatusDisplayName,
   getAvailableStatusesForRole,
-  ADMIN_ALLOWED_STATUSES,
-  SHIPPER_EXCLUSIVE_STATUSES
+  ADMIN_ALLOWED_STATUSES
 } = require('../utils/orderStatus');
 const { 
-  emitOrderStatusUpdate, 
-  emitOrderAssignmentNotification 
+  emitOrderStatusUpdate,
+  emitNewOrderNotification,
+  sendNotification
 } = require('../socket/socketServer');
 const { validateCoupon, applyCouponToOrder } = require('../services/couponService');
 
@@ -143,7 +143,6 @@ const createOrder = asyncHandler(async (req, res) => {
     await session.endSession();
   }
 
-  const { emitNewOrderNotification } = require('../socket/socketServer');
   emitNewOrderNotification(createdOrder);
 
   res.status(201).json({
@@ -343,6 +342,23 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
 
   await order.save();
 
+  const statusLabels = {
+    'pending': 'Chờ xác nhận',
+    'confirmed': 'Đã xác nhận',
+    'processing': 'Đang xử lý',
+    'shipped': 'Đang giao',
+    'delivered': 'Đã giao',
+    'cancelled': 'Đã hủy'
+  };
+
+  await sendNotification({
+    recipient: order.user.toString(),
+    title: 'Cập nhật trạng thái đơn hàng',
+    message: `Đơn hàng #${order.orderNumber} của bạn đã chuyển sang trạng thái: ${statusLabels[req.body.status] || req.body.status}`,
+    type: 'order',
+    link: `/profile/orders/${order._id}`
+  });
+
   // Emit real-time status update
   emitOrderStatusUpdate(order, previousStatus, req.user._id, note || `Updated by admin to ${getStatusDisplayName(status)}`);
 
@@ -472,263 +488,6 @@ const getRevenueReport = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Get all available orders for shippers (not just assigned ones)
-// @route   GET /api/orders/shipper/available
-// @access  Private/Shipper
-const getAvailableOrdersForShippers = asyncHandler(async (req, res) => {
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 20;
-  const skip = (page - 1) * limit;
-
-  // Show all orders that are ready for delivery (confirmed) or in progress
-  const query = {
-    status: { $in: ['confirmed'] },
-  };
-
-  // Filter by status if provided
-  if (req.query.status) {
-    // Support multiple statuses separated by comma
-    const statuses = req.query.status.split(',').map(s => s.trim());
-    query.status = { $in: statuses };
-  }
-
-  // Filter by location if provided
-  if (req.query.city) {
-    query['shippingAddress.city'] = { $regex: req.query.city, $options: 'i' };
-  }
-
-  const total = await Order.countDocuments(query);
-  const orders = await Order.find(query)
-    .populate('user', 'name email phone')
-    .populate('shipper', 'name email phone')
-    .sort({ createdAt: 1 }) // Oldest first (FIFO)
-    .skip(skip)
-    .limit(limit);
-
-  res.json({
-    success: true,
-    data: {
-      orders,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
-    },
-  });
-});
-
-// @desc    Update order status by shipper (can take over any order)
-// @route   PUT /api/orders/:id/shipper-update
-// @access  Private/Shipper
-const updateOrderByShipper = asyncHandler(async (req, res) => {
-  const { status, note, location } = req.body;
-  
-  const order = await Order.findById(req.params.id);
-
-  if (!order) {
-    res.status(404);
-    throw new Error('Đơn hàng không tồn tại');
-  }
-
-  // Shipper can take over any order that's confirmed or in progress
-   const allowedCurrentStatuses = ['confirmed', 'processing', 'shipped'];
-  if (!allowedCurrentStatuses.includes(order.status)) {
-    res.status(400);
-    throw new Error('Không thể cập nhật đơn hàng ở trạng thái này');
-  }
-
-  try {
-    // Validate status transition with shipper role restrictions
-    validateStatusTransition(order.status, status, 'shipper');
-  } catch (validationError) {
-    // Log validation failure for audit
-    await logValidationFailure(
-      order._id.toString(),
-      order.orderNumber,
-      order.status,
-      status,
-      req.user._id.toString(),
-      'shipper',
-      validationError.message,
-      req
-    );
-    
-    res.status(400);
-    throw new Error(`Validation failed: ${validationError.message}`);
-  }
-
-  // If shipper is taking over the order, assign them
-  if (!order.shipper && status === 'processing') {
-    order.shipper = req.user._id;
-  }
-
-   if (order.shipper && order.shipper.toString() !== req.user._id.toString()) {
-     if (['processing', 'shipped'].includes(status)) {
-       order.shipper = req.user._id; // Transfer to current shipper
-     }
-   }
-
-  // Log the status change for audit
-  await logStatusChange(order, status, req.user._id, note || `Cập nhật bởi shipper: ${getStatusDisplayName(status)}`, 'shipper', req);
-
-  // Store previous status for real-time update
-  const previousStatus = order.status;
-
-  order.status = status;
-
-  // Add location if provided (for tracking)
-  if (location) {
-    order.currentLocation = location;
-  }
-
-  // Set delivery date if delivered
-  if (status === 'delivered') {
-    order.deliveredAt = new Date();
-  }
-
-  await order.save();
-
-  // Emit real-time status update
-  emitOrderStatusUpdate(order, previousStatus, req.user._id, note || `Cập nhật bởi shipper: ${getStatusDisplayName(status)}`);
-
-  res.json({
-    success: true,
-    message: 'Đã cập nhật trạng thái đơn hàng',
-    data: { order },
-  });
-});
-
-// @desc    Accept order for delivery (Shipper)
-// @route   PUT /api/orders/:id/accept
-// @access  Private/Shipper
-const acceptOrderForDelivery = asyncHandler(async (req, res) => {
-  const order = await Order.findById(req.params.id);
-
-  if (!order) {
-    res.status(404);
-    throw new Error('Đơn hàng không tồn tại');
-  }
-
-  // Check if order is available for pickup
-  if (order.status !== 'confirmed') {
-    res.status(400);
-    throw new Error('Đơn hàng không ở trạng thái chờ lấy hàng');
-  }
-
-  if (order.shipper) {
-    res.status(400);
-    throw new Error('Đơn hàng đã được shipper khác nhận');
-  }
-
-  // Assign shipper and update status
-  order.shipper = req.user._id;
-  order.status = 'processing';
-  order.statusHistory.push({
-    status: 'processing',
-    note: 'Đơn hàng đã được shipper nhận',
-    updatedAt: new Date(),
-    updatedBy: req.user._id,
-  });
-
-  await order.save();
-
-  res.json({
-    success: true,
-    message: 'Đã nhận đơn hàng thành công',
-    data: { order },
-  });
-});
-
-// @desc    Get shipper's assigned orders
-// @route   GET /api/orders/shipper/my-orders
-// @access  Private/Shipper
-const getShipperOrders = asyncHandler(async (req, res) => {
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 20;
-  const skip = (page - 1) * limit;
-
-  const query = { shipper: req.user._id };
-
-  // Filter by status
-  if (req.query.status) {
-    query.status = req.query.status;
-  }
-
-  const total = await Order.countDocuments(query);
-  const orders = await Order.find(query)
-    .populate('user', 'name email phone')
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit);
-
-  res.json({
-    success: true,
-    data: {
-      orders,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
-    },
-  });
-});
-
-// @desc    Update delivery status (Shipper)
-// @route   PUT /api/orders/:id/delivery-status
-// @access  Private/Shipper
-const updateDeliveryStatus = asyncHandler(async (req, res) => {
-  const { status, note, location } = req.body;
-  
-  const order = await Order.findById(req.params.id);
-
-  if (!order) {
-    res.status(404);
-    throw new Error('Đơn hàng không tồn tại');
-  }
-
-  // Check if shipper owns this order
-  if (order.shipper.toString() !== req.user._id.toString()) {
-    res.status(403);
-    throw new Error('Bạn không có quyền cập nhật đơn hàng này');
-  }
-
-  // Validate status transitions for shippers
-  const validTransitions = {
-    'processing': ['shipped', 'cancelled'],
-    'shipped': ['delivered', 'cancelled'],
-  };
-
-  if (!validTransitions[order.status]?.includes(status)) {
-    res.status(400);
-    throw new Error('Không thể chuyển trạng thái đơn hàng');
-  }
-
-  order.status = status;
-  order.statusHistory.push({
-    status,
-    note: note || `Cập nhật bởi shipper: ${status}`,
-    updatedAt: new Date(),
-    updatedBy: req.user._id,
-  });
-
-  // Add location if provided (for tracking)
-  if (location) {
-    order.currentLocation = location;
-  }
-
-  await order.save();
-
-  res.json({
-    success: true,
-    message: 'Đã cập nhật trạng thái đơn hàng',
-    data: { order },
-  });
-});
-
 module.exports = {
   createOrder,
   getMyOrders,
@@ -739,9 +498,4 @@ module.exports = {
   updatePaymentStatus,
   getOrderStats,
   getRevenueReport,
-  getAvailableOrdersForShippers,
-  acceptOrderForDelivery,
-  getShipperOrders,
-  updateDeliveryStatus,
-  updateOrderByShipper,
 };

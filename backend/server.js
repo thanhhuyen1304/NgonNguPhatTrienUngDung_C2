@@ -1,3 +1,4 @@
+// Backend Server Entry Point - Updated for CRUD fixes
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -20,10 +21,10 @@ const cart = require('./routes/cart');
 const order = require('./routes/order');
 const upload = require('./routes/upload');
 const wishlist = require('./routes/wishlist');
-const shipper = require('./routes/shipper');
 const support = require('./routes/support');
 const payment = require('./routes/payment');
 const coupon = require('./routes/coupon');
+const notification = require('./routes/notification');
 
 // Import middleware
 const error = require('./middleware/error');
@@ -139,10 +140,10 @@ app.use('/api/cart', cart);
 app.use('/api/orders', order);
 app.use('/api/upload', upload);
 app.use('/api/wishlist', wishlist);
-app.use('/api/shipper', shipper);
 app.use('/api/support', support);
 app.use('/api/payment', payment);
 app.use('/api/coupons', coupon);
+app.use('/api/notifications', notification);
 
 /* =======================
    Health Check

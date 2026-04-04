@@ -17,11 +17,7 @@ const useRoleRedirect = () => {
       const isOnRegisterPage = location.pathname === '/register';
       
       if (isOnHomePage || isOnLoginPage || isOnRegisterPage) {
-        if (user.role === 'admin') {
-          navigate('/admin');
-        } else if (user.role === 'shipper') {
-          navigate('/shipper');
-        }
+        // No longer redirecting based on role. Users stay on the homepage.
       }
     }
   }, [user, isAuthenticated, initialized, navigate, location.pathname]);
