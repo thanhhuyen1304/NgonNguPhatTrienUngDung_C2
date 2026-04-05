@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { getOrderById } from '../store/slices/orderSlice';
+import { cancelOrder, getOrderById } from '../store/slices/orderSlice';
 import Loading from '../components/common/Loading';
 import toast from 'react-hot-toast';
 import socketService from '../services/socketService';
@@ -95,6 +95,23 @@ const OrderDetailPage = () => {
     bank_transfer: 'Chuyển khoản ngân hàng',
     credit_card: 'Thẻ tín dụng',
     zalopay: 'ZaloPay',
+  };
+
+  const handleCancelOrder = async () => {
+    const confirmed = window.confirm('Bạn có chắc chắn muốn hủy đơn hàng này không?');
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await dispatch(
+        cancelOrder({ id: order._id, reason: 'Cancelled by customer' })
+      ).unwrap();
+      toast.success('Hủy đơn hàng thành công');
+    } catch (cancelError) {
+      toast.error(cancelError || 'Không thể hủy đơn hàng');
+    }
   };
 
   return (
@@ -250,6 +267,8 @@ const OrderDetailPage = () => {
             </div>
             {['pending', 'confirmed'].includes(order.status) && (
               <button
+                onClick={handleCancelOrder}
+                disabled={loading}
                 className="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition-colors font-semibold"
               >
                 Hủy đơn hàng
