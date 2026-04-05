@@ -29,6 +29,7 @@ import {
   sendAdminSupportMessage,
   updateAdminSupportConversationStatus,
 } from '../../services/supportService';
+import socketService from '../../services/socketService';
 
 const AdminSupportInbox = () => {
   const { id: urlId } = useParams();
@@ -46,6 +47,7 @@ const AdminSupportInbox = () => {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const attachmentsRef = useRef([]);
+  const messageRequestRef = useRef(0);
 
   const cleanupAttachments = useCallback((items) => {
     items.forEach(revokeAttachmentPreview);
@@ -64,6 +66,11 @@ const AdminSupportInbox = () => {
   const selectedConversation = useMemo(() => {
     return conversations.find((conversation) => conversation._id === selectedConversationId) || null;
   }, [conversations, selectedConversationId]);
+
+  const extractConversationIdFromLink = useCallback((link = '') => {
+    const match = link.match(/\/admin\/support\/([^/?#]+)/);
+    return match?.[1] || '';
+  }, []);
 
   const filteredConversations = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -121,6 +128,8 @@ const AdminSupportInbox = () => {
       return [];
     }
 
+    const requestId = ++messageRequestRef.current;
+
     if (!options.silent) {
       setLoadingMessages(true);
     }
@@ -128,8 +137,16 @@ const AdminSupportInbox = () => {
     try {
       const nextMessages = await getAdminSupportMessages(conversationId);
 
+      if (requestId !== messageRequestRef.current) {
+        return nextMessages;
+      }
+
       setMessages(nextMessages);
-      await markConversationAsRead(conversationId);
+
+      if (options.markAsRead) {
+        await markConversationAsRead(conversationId);
+      }
+
       return nextMessages;
     } catch (error) {
       if (!options.silent) {
@@ -150,11 +167,19 @@ const AdminSupportInbox = () => {
 
     try {
       const nextConversations = await getAdminSupportConversations();
+      const hasSelectedConversation = nextConversations.some(
+        (conversation) => conversation._id === (urlId || selectedConversationId)
+      );
 
       setConversations(nextConversations);
-      if (nextConversations.length > 0 && !urlId) {
+
+      if (nextConversations.length > 0 && !urlId && !selectedConversationId) {
         setSelectedConversationId(nextConversations[0]._id);
+      } else if (nextConversations.length > 0 && !hasSelectedConversation && !options.silent) {
+        setSelectedConversationId(nextConversations[0]._id);
+        navigate(`/admin/support/${nextConversations[0]._id}`, { replace: true });
       }
+
       return nextConversations;
     } catch (error) {
       if (!options.silent) {
@@ -166,7 +191,7 @@ const AdminSupportInbox = () => {
         setLoadingConversations(false);
       }
     }
-  }, [urlId]);
+  }, [navigate, selectedConversationId, urlId]);
 
   useEffect(() => {
     fetchConversations();
@@ -185,7 +210,7 @@ const AdminSupportInbox = () => {
 
   useEffect(() => {
     if (selectedConversationId) {
-      fetchMessages(selectedConversationId);
+      fetchMessages(selectedConversationId, { markAsRead: true });
       return;
     }
 
@@ -193,19 +218,36 @@ const AdminSupportInbox = () => {
   }, [selectedConversationId, fetchMessages]);
 
   useEffect(() => {
-    const intervalId = setInterval(async () => {
-      const nextConversations = await fetchConversations({ silent: true });
-      const activeConversationId = selectedConversationId || nextConversations[0]?._id;
-
-      if (activeConversationId) {
-        await fetchMessages(activeConversationId, { silent: true });
+    const handleSupportNotification = async (notification) => {
+      if (notification?.type !== 'support') {
+        return;
       }
-    }, 5000);
+
+      const notifiedConversationId = extractConversationIdFromLink(notification.link || '');
+      const nextConversations = await fetchConversations({ silent: true });
+
+      if (!selectedConversationId && notifiedConversationId) {
+        setSelectedConversationId(notifiedConversationId);
+        navigate(`/admin/support/${notifiedConversationId}`, { replace: true });
+        return;
+      }
+
+      if (notifiedConversationId && notifiedConversationId === selectedConversationId) {
+        await fetchMessages(notifiedConversationId, { silent: true, markAsRead: false });
+        return;
+      }
+
+      if (!selectedConversationId && nextConversations[0]?._id) {
+        setSelectedConversationId(nextConversations[0]._id);
+      }
+    };
+
+    socketService.on('new_notification', handleSupportNotification);
 
     return () => {
-      clearInterval(intervalId);
+      socketService.off('new_notification', handleSupportNotification);
     };
-  }, [fetchConversations, fetchMessages, selectedConversationId]);
+  }, [extractConversationIdFromLink, fetchConversations, fetchMessages, navigate, selectedConversationId]);
 
   const handleAttachmentChange = (event) => {
     const files = Array.from(event.target.files || []);
@@ -263,7 +305,7 @@ const AdminSupportInbox = () => {
       if (returnedMessage) {
         setMessages((previousMessages) => mergeMessages(previousMessages, [returnedMessage]));
       } else {
-        await fetchMessages(selectedConversationId, { silent: true });
+        await fetchMessages(selectedConversationId, { silent: true, markAsRead: false });
       }
 
       cleanupAttachments(attachments);
@@ -428,7 +470,7 @@ const AdminSupportInbox = () => {
         </div>
 
         {/* Main: Message View */}
-        <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full relative">
+        <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full min-h-0 relative">
           {/* Chat Header */}
           <div className="p-6 border-b border-gray-50 bg-gray-50/30">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -489,7 +531,7 @@ const AdminSupportInbox = () => {
           </div>
 
           {/* Messages Area */}
-          <div className="flex-1 min-h-0 bg-white relative">
+          <div className="flex flex-1 min-h-0 overflow-hidden bg-white relative">
              <SupportMessageList
               messages={messages}
               viewerRole="admin"

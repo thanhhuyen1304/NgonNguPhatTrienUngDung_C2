@@ -20,7 +20,7 @@ const SupportChatComposer = ({
   const hasContent = value.trim() || attachments.length > 0;
 
   return (
-    <div className="border-t border-gray-100 bg-white p-4">
+    <div className="shrink-0 border-t border-gray-100 bg-white p-4">
       {attachments.length > 0 ? (
         <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
           {attachments.map((attachment) => (

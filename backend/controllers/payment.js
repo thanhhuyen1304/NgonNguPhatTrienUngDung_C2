@@ -217,6 +217,11 @@ const createMomoPayment = asyncHandler(async (req, res) => {
     throw new Error('Thanh toán MoMo chưa được cấu hình trên máy chủ');
   }
 
+  if (!/^https?:\/\//.test(redirectUrl) || !/^https?:\/\//.test(ipnUrl)) {
+    res.status(500);
+    throw new Error('Cấu hình MoMo redirectUrl hoặc ipnUrl không hợp lệ');
+  }
+
   // ── 1. Lấy giỏ hàng ────────────────────────────────────────
   const cart = await Cart.findOne({ user: req.user._id }).populate({
     path: 'items.product',
@@ -318,7 +323,12 @@ const createMomoPayment = asyncHandler(async (req, res) => {
   // ── 4. Tạo MoMo payment request ────────────────────────────
   const orderId      = `${order._id}-${Date.now()}`;
   const requestId    = `${partnerCode}-${Date.now()}`;
-  const amount       = order.totalPrice;         // VND, số nguyên
+  const amount       = Math.round(Number(order.totalPrice) || 0);         // VND, số nguyên
+
+  if (amount <= 0) {
+    res.status(400);
+    throw new Error('Số tiền thanh toán MoMo không hợp lệ');
+  }
   const orderInfo    = `Thanh toán đơn hàng ${order.orderNumber}`;
   const requestType  = MOMO_REQUEST_TYPE;
   const extraData    = Buffer.from(JSON.stringify({ orderId: order._id.toString() })).toString('base64');

@@ -1,5 +1,6 @@
 import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
+import { refreshAccessToken } from './api';
 
 class SocketService {
   constructor() {
@@ -11,6 +12,7 @@ class SocketService {
     this.listeners = new Map();
     this.dispatch = null;
     this.reconnectTimeouts = new Set();
+    this.refreshPromise = null;
   }
 
   // Set Redux dispatch
@@ -20,6 +22,8 @@ class SocketService {
 
   // Initialize socket connection
   connect(token) {
+    const resolvedToken = token || localStorage.getItem('accessToken') || undefined;
+
     if (this.socket) {
       if (this.socket.connected || this.isConnecting) {
         console.log('Socket connection already active or in progress');
@@ -27,6 +31,7 @@ class SocketService {
       }
 
       this.isConnecting = true;
+      this.socket.auth = resolvedToken ? { token: resolvedToken } : {};
       this.socket.connect();
       return;
     }
@@ -38,13 +43,27 @@ class SocketService {
     this.isConnecting = true;
 
     this.socket = io(serverUrl, {
-      auth: token ? { token } : {},
+      auth: resolvedToken ? { token: resolvedToken } : {},
       withCredentials: true,
       transports: ['websocket', 'polling'],
       timeout: 10000,
     });
 
     this.setupEventListeners();
+  }
+
+  async refreshSocketAuth() {
+    if (!this.refreshPromise) {
+      this.refreshPromise = refreshAccessToken()
+        .catch((error) => {
+          throw error;
+        })
+        .finally(() => {
+          this.refreshPromise = null;
+        });
+    }
+
+    return this.refreshPromise;
   }
 
   // Setup socket event listeners
@@ -79,6 +98,31 @@ class SocketService {
       console.error('🔥 Socket connection error:', error.message);
       this.isConnected = false;
       this.isConnecting = false;
+
+      const normalizedMessage = (error.message || '').toLowerCase();
+      const needsAuthRefresh =
+        normalizedMessage.includes('authentication') ||
+        normalizedMessage.includes('invalid token') ||
+        normalizedMessage.includes('jwt') ||
+        normalizedMessage.includes('expired');
+
+      if (needsAuthRefresh) {
+        this.refreshSocketAuth()
+          .then((newToken) => {
+            if (!this.socket || this.isConnected || !newToken) {
+              return;
+            }
+
+            this.socket.auth = { token: newToken };
+            this.isConnecting = true;
+            this.socket.connect();
+          })
+          .catch(() => {
+            toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+          });
+        return;
+      }
+
       this.reconnectAttempts++;
       
       if (this.reconnectAttempts <= this.maxReconnectAttempts) {

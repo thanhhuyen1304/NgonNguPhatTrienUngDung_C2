@@ -79,7 +79,7 @@ const SupportMessageList = ({
   }
 
   return (
-    <div ref={containerRef} className="min-h-[320px] flex-1 overflow-y-auto bg-gray-50 px-4 py-5 sm:min-h-0 sm:px-6">
+    <div ref={containerRef} className="h-full min-h-0 w-full overflow-y-auto bg-gray-50 px-4 py-5 sm:px-6">
       <div className="space-y-4">
         {messages.map((message) => {
           const isOwnMessage = message.senderRole === viewerRole;
@@ -89,7 +89,7 @@ const SupportMessageList = ({
               key={message._id}
               className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
             >
-              <div className={`max-w-xl ${isOwnMessage ? 'items-end' : 'items-start'} flex flex-col`}>
+              <div className={`max-w-xl w-full ${isOwnMessage ? 'items-end' : 'items-start'} flex flex-col`}>
                 <span className="mb-1 text-xs text-gray-500">
                   {message.senderName} • {formatSupportTime(message.createdAt)}
                 </span>
@@ -113,12 +113,12 @@ const SupportMessageList = ({
                             key={attachment.id}
                             type="button"
                             onClick={() => setPreviewImage(attachment)}
-                            className="block overflow-hidden rounded-xl"
+                            className="block max-w-full overflow-hidden rounded-xl"
                           >
                             <img
                               src={attachment.url}
                               alt={attachment.originalName}
-                              className="max-h-72 w-full rounded-xl object-cover"
+                              className="block max-h-72 max-w-full rounded-xl object-cover"
                             />
                           </button>
                         ) : (

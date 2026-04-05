@@ -59,7 +59,7 @@ export const isImageUrl = (url = '', mimeType = '') => {
     return true;
   }
 
-  return /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(url);
+  return /\.(png|jpe?g|gif|webp|bmp|svg|jfif)$/i.test(url);
 };
 
 export const normalizeAttachment = (attachment, index = 0) => {
@@ -74,12 +74,25 @@ export const normalizeAttachment = (attachment, index = 0) => {
       return '';
     }
 
-    if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) {
-      return url;
+    const normalizedPath = String(url).replace(/\\/g, '/');
+
+    const uploadsSupportIndex = normalizedPath.indexOf('/uploads/support/');
+    if (uploadsSupportIndex >= 0) {
+      const publicPath = normalizedPath.slice(uploadsSupportIndex);
+      return encodeURI(`${apiOrigin}${publicPath}`);
     }
 
-    const normalizedUrl = url.startsWith('/') ? url : `/${url}`;
-    return `${apiOrigin}${normalizedUrl}`;
+    if (/^[a-zA-Z]:\//.test(normalizedPath) && normalizedPath.includes('/uploads/support/')) {
+      const fileName = normalizedPath.split('/uploads/support/').pop();
+      return encodeURI(`${apiOrigin}/uploads/support/${fileName}`);
+    }
+
+    if (normalizedPath.startsWith('http') || normalizedPath.startsWith('blob:') || normalizedPath.startsWith('data:')) {
+      return encodeURI(normalizedPath);
+    }
+
+    const normalizedUrl = normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`;
+    return encodeURI(`${apiOrigin}${normalizedUrl}`);
   };
 
   if (typeof attachment === 'string') {
@@ -94,7 +107,10 @@ export const normalizeAttachment = (attachment, index = 0) => {
   }
 
   const rawUrl = attachment.url || attachment.secure_url || attachment.path || '';
-  const url = ensureAbsoluteUrl(rawUrl);
+  const fallbackLocalUrl = !rawUrl && attachment.publicId && !String(attachment.publicId).includes('/')
+    ? `/uploads/support/${attachment.publicId}`
+    : '';
+  const url = ensureAbsoluteUrl(rawUrl || fallbackLocalUrl);
   const mimeType = attachment.mimeType || attachment.type || '';
 
   return {

@@ -89,7 +89,7 @@ function App() {
     }
 
     if (isAuthenticated) {
-      socketService.connect();
+      socketService.connect(localStorage.getItem('accessToken'));
       return;
     }
 
