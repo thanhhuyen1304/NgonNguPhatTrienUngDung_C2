@@ -5,10 +5,10 @@ import Loading from '../common/Loading';
 import { getPostLoginRoute } from '../../utils/roleRedirect';
 
 const GuestRoute = () => {
-  const { isAuthenticated, loading, initialized, user } = useSelector((state) => state.auth);
+  const { isAuthenticated, initialized, user } = useSelector((state) => state.auth);
   const location = useLocation();
 
-  if (loading || !initialized) {
+  if (!initialized) {
     return <Loading fullScreen />;
   }
 
