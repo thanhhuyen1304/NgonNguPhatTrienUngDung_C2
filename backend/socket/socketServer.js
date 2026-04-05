@@ -1,6 +1,7 @@
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const User = require('../schemas/User');
+const Notification = require('../schemas/Notification');
 
 let io;
 
@@ -210,11 +211,73 @@ const emitOrderStatusUpdate = (order, previousStatus, updatedBy, note) => {
   io.to('admins').emit('order_status_updated', updateData);
 
   // Emit to all shippers for order availability updates
-  io.to('shippers').emit('order_status_updated', updateData);
+  // io.to('shippers').emit('order_status_updated', updateData);
+};
+
+/**
+ * Send a notification to a specific user or group
+ * @param {Object} data - Notification data
+ * @param {String} data.recipient - User ID or 'admin'
+ * @param {String} data.title - Notification title
+ * @param {String} data.message - Notification message
+ * @param {String} data.type - Notification type (order, support, system, etc.)
+ * @param {String} data.link - Optional link for frontend navigation
+ * @param {String} data.sender - Optional User ID of sender
+ */
+const sendNotification = async (data) => {
+  if (!io) {
+    console.warn('Socket.IO not initialized, skipping notification');
+    return;
+  }
+
+  try {
+    const { recipient, title, message, type, link, sender } = data;
+
+    // 1. If recipient is 'admin', find all admins and create notifications for each
+    if (recipient === 'admin') {
+      const admins = await User.find({ role: 'admin' }).select('_id');
+      
+      const notificationPromises = admins.map(admin => 
+        Notification.create({
+          recipient: admin._id,
+          sender,
+          title,
+          message,
+          type,
+          link
+        })
+      );
+
+      const notifications = await Promise.all(notificationPromises);
+      
+      // Emit to admins room
+      io.to('admins').emit('new_notification', notifications[0]); // Just send one for the UI to update
+      return notifications;
+    }
+
+    // 2. Persistent storage for single recipient
+    const notification = await Notification.create({
+      recipient,
+      sender,
+      title,
+      message,
+      type,
+      link
+    });
+
+    console.log(`📡 Sending notification to user_${recipient}: ${title}`);
+
+    // 3. Real-time emission
+    io.to(`user_${recipient}`).emit('new_notification', notification);
+
+    return notification;
+  } catch (error) {
+    console.error('Error sending notification:', error.message);
+  }
 };
 
 // Emit new order notification
-const emitNewOrderNotification = (order) => {
+const emitNewOrderNotification = async (order) => {
   if (!io) {
     console.warn('Socket.IO not initialized, skipping new order notification');
     return;
@@ -231,7 +294,16 @@ const emitNewOrderNotification = (order) => {
 
   console.log(`📡 Emitting new order notification: ${order.orderNumber}`);
 
-  // Notify all admins about new order
+  // 1. Send persistent notification to all admins
+  await sendNotification({
+    recipient: 'admin',
+    title: 'Đơn hàng mới',
+    message: `Có đơn hàng mới #${order.orderNumber} từ khách hàng.`,
+    type: 'order',
+    link: `/admin/orders`
+  });
+
+  // 2. legacy event for backwards compatibility (optional)
   io.to('admins').emit('new_order', notificationData);
 
   // Notify all shippers about potential new delivery opportunity
@@ -272,4 +344,5 @@ module.exports = {
   emitOrderStatusUpdate,
   emitNewOrderNotification,
   emitOrderAssignmentNotification,
+  sendNotification,
 };

@@ -6,18 +6,13 @@ const api = axios.create({
   baseURL,
   timeout: 10000,
   withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  // Removed static Content-Type to allow automatic detection for FormData
 });
 
 const refreshClient = axios.create({
   baseURL,
   timeout: 10000,
   withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
 let refreshRequest = null;
@@ -67,7 +62,13 @@ export const refreshAccessToken = async () => {
 };
 
 api.interceptors.request.use(
-  (config) => config,
+  (config) => {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
   (error) => Promise.reject(error)
 );
 
@@ -110,5 +111,7 @@ api.interceptors.response.use(
 );
 
 export const getApiOrigin = () => baseURL.replace(/\/api$/, '');
+
+export const getResponseData = (response) => response?.data?.data ?? null;
 
 export default api;

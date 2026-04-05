@@ -22,14 +22,14 @@ const errorHandler = (err, req, res, next) => {
 
   // Mongoose bad ObjectId
   if (err.name === 'CastError') {
-    const message = 'Resource not found';
+    const message = 'Không tìm thấy dữ liệu';
     error = new AppError(message, 404);
   }
 
   // Mongoose duplicate key
   if (err.code === 11000) {
     const field = Object.keys(err.keyValue)[0];
-    const message = `${field.charAt(0).toUpperCase() + field.slice(1)} already exists`;
+    const message = `${field.charAt(0).toUpperCase() + field.slice(1)} đã tồn tại`;
     error = new AppError(message, 400);
   }
 
@@ -42,29 +42,29 @@ const errorHandler = (err, req, res, next) => {
 
   // JWT errors
   if (err.name === 'JsonWebTokenError') {
-    const message = 'Invalid token. Please log in again.';
+    const message = 'Token không hợp lệ. Vui lòng đăng nhập lại.';
     error = new AppError(message, 401);
   }
 
   if (err.name === 'TokenExpiredError') {
-    const message = 'Your token has expired. Please log in again.';
+    const message = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
     error = new AppError(message, 401);
   }
 
   // Multer file size error
   if (err.code === 'LIMIT_FILE_SIZE') {
-    const message = 'File too large. Maximum size is 5MB';
+    const message = 'Tệp quá lớn. Kích thước tối đa là 5MB';
     error = new AppError(message, 400);
   }
 
   // Multer unexpected field
   if (err.code === 'LIMIT_UNEXPECTED_FILE') {
-    const message = 'Too many files uploaded';
+    const message = 'Bạn đã tải lên quá nhiều tệp';
     error = new AppError(message, 400);
   }
 
   const statusCode = error.statusCode || err.statusCode || 500;
-  const message = error.message || 'Internal Server Error';
+  const message = error.message || 'Lỗi máy chủ nội bộ';
 
   res.status(statusCode).json({
     success: false,
@@ -82,7 +82,7 @@ const asyncHandler = (fn) => (req, res, next) =>
 
 // Not found handler
 const notFound = (req, res, next) => {
-  const error = new AppError(`Not found - ${req.originalUrl}`, 404);
+  const error = new AppError(`Không tìm thấy tài nguyên - ${req.originalUrl}`, 404);
   next(error);
 };
 

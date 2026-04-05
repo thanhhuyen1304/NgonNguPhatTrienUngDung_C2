@@ -7,11 +7,11 @@ const {
   verifyMomoPayment,
 } = require('../controllers/payment');
 
-const { protect } = require('../middleware/auth');
+const { protect, customerOnly } = require('../middleware/auth');
 
 // MoMo routes
-router.post('/momo/create', protect, createMomoPayment);   // Tạo payment + order
+router.post('/momo/create', protect, customerOnly, createMomoPayment);   // Tạo payment + order
 router.post('/momo/ipn', momoIPN);                          // MoMo IPN callback (public)
-router.get('/momo/verify', protect, verifyMomoPayment);     // Frontend verify sau redirect
+router.get('/momo/verify', protect, customerOnly, verifyMomoPayment);     // Frontend verify sau redirect
 
 module.exports = router;

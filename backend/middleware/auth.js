@@ -3,12 +3,14 @@ const asyncHandler = require('express-async-handler');
 const User = require('../schemas/User');
 
 const getAccessTokenFromRequest = (req) => {
-  if (req.cookies?.accessToken) {
-    return req.cookies.accessToken;
-  }
-
+  // 1. Check Authorization Header (Bearer token) - usually more explicit from clients
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     return req.headers.authorization.split(' ')[1];
+  }
+
+  // 2. Check HTTP-only Cookies
+  if (req.cookies?.accessToken) {
+    return req.cookies.accessToken;
   }
 
   return null;
@@ -21,50 +23,54 @@ const protect = asyncHandler(async (req, res, next) => {
   if (token) {
     try {
       // Verify token
+      console.log('🗝️ Verifying token...');
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log('✅ Token decoded for user ID:', decoded.id);
 
       // Get user from token
       req.user = await User.findById(decoded.id).select('-password -refreshToken');
 
       if (!req.user) {
+        console.warn('❌ User not found for token ID:', decoded.id);
         res.status(401);
         throw new Error('User not found');
       }
 
       if (!req.user.isActive) {
+        console.warn('❌ User account is deactivated:', req.user.email);
         res.status(401);
         throw new Error('User account is deactivated');
       }
 
       return next();
     } catch (error) {
-      console.error('Auth Error:', error.message);
+      console.error('❌ Auth Middleware Error:', error.message, error.name);
       
       // Handle specific JWT errors
       if (error.name === 'TokenExpiredError') {
         return res.status(401).json({
           success: false,
-          message: 'Token expired'
+          message: 'Token đã hết hạn'
         });
       } else if (error.name === 'JsonWebTokenError') {
         return res.status(401).json({
           success: false,
-          message: 'Invalid token'
+          message: 'Token không hợp lệ'
         });
       } else if (error.message === 'User not found') {
         return res.status(401).json({
           success: false,
-          message: 'User not found'
+          message: 'Không tìm thấy người dùng'
         });
       } else if (error.message === 'User account is deactivated') {
         return res.status(401).json({
           success: false,
-          message: 'User account is deactivated'
+          message: 'Tài khoản người dùng đã bị vô hiệu hóa'
         });
       } else {
         return res.status(401).json({
           success: false,
-          message: 'Not authorized, token failed'
+          message: 'Không được phép truy cập, token không hợp lệ'
         });
       }
     }
@@ -72,7 +78,7 @@ const protect = asyncHandler(async (req, res, next) => {
 
   return res.status(401).json({
     success: false,
-    message: 'Not authorized, no token'
+    message: 'Không được phép truy cập, thiếu token'
   });
 });
 
@@ -83,9 +89,20 @@ const admin = (req, res, next) => {
   } else {
     return res.status(403).json({
       success: false,
-      message: 'Not authorized as admin'
+      message: 'Bạn không có quyền quản trị viên'
     });
   }
+};
+
+const customerOnly = (req, res, next) => {
+  if (req.user && req.user.role === 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Quản trị viên chỉ được phép hoạt động trong dashboard'
+    });
+  }
+
+  next();
 };
 
 // Shipper middleware
@@ -95,7 +112,7 @@ const shipper = (req, res, next) => {
   } else {
     return res.status(403).json({
       success: false,
-      message: 'Not authorized as shipper'
+      message: 'Bạn không có quyền shipper'
     });
   }
 };
@@ -143,6 +160,7 @@ const verifyRefreshToken = (token) => {
 module.exports = {
   protect,
   admin,
+  customerOnly,
   shipper,
   optionalAuth,
   generateAccessToken,

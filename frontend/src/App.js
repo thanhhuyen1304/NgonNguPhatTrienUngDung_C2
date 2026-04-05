@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { bootstrapAuth, clearSessionState, hasStoredSessionHint } from './store/slices/authSlice';
@@ -40,6 +40,7 @@ import AdminCategories from './pages/admin/Categories';
 import AdminOrders from './pages/admin/Orders';
 import AdminUsers from './pages/admin/Users';
 import AdminSupportInbox from './pages/admin/SupportInbox';
+import AdminCoupons from './pages/admin/Coupons';
 
 // Guards
 import PrivateRoute from './components/guards/PrivateRoute';
@@ -52,20 +53,32 @@ import RoleChangeNotification from './components/common/RoleChangeNotification';
 function App() {
   const dispatch = useDispatch();
   const location = useLocation();
-  const { isAuthenticated, initialized } = useSelector((state) => state.auth);
+  const { isAuthenticated, initialized, user } = useSelector((state) => state.auth);
+  const authBootstrapAttemptedRef = useRef(false);
   
   // Use role redirect hook
   useRoleRedirect();
 
   useEffect(() => {
+    socketService.setDispatch(dispatch);
+  }, [dispatch]);
+
+  useEffect(() => {
     const isGoogleCallbackRoute = location.pathname === '/auth/google/callback';
 
-    if (!isGoogleCallbackRoute && hasStoredSessionHint()) {
-      dispatch(bootstrapAuth());
+    if (isGoogleCallbackRoute) {
       return;
     }
 
-    if (!isGoogleCallbackRoute) {
+    if (authBootstrapAttemptedRef.current) {
+      return;
+    }
+
+    authBootstrapAttemptedRef.current = true;
+
+    if (hasStoredSessionHint()) {
+      dispatch(bootstrapAuth());
+    } else {
       dispatch(clearSessionState());
     }
   }, [dispatch, location.pathname]);
@@ -84,11 +97,11 @@ function App() {
   }, [initialized, isAuthenticated]);
 
   useEffect(() => {
-    if (initialized && isAuthenticated) {
+    if (initialized && isAuthenticated && user?.role !== 'admin') {
       dispatch(getCart());
       dispatch(getWishlist());
     }
-  }, [dispatch, initialized, isAuthenticated]);
+  }, [dispatch, initialized, isAuthenticated, user?.role]);
 
   return (
     <>
@@ -133,7 +146,9 @@ function App() {
             <Route path="categories" element={<AdminCategories />} />
             <Route path="orders" element={<AdminOrders />} />
             <Route path="users" element={<AdminUsers />} />
+            <Route path="coupons" element={<AdminCoupons />} />
             <Route path="support" element={<AdminSupportInbox />} />
+            <Route path="support/:id" element={<AdminSupportInbox />} />
           </Route>
         </Route>
       </Routes>

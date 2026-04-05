@@ -1,58 +1,22 @@
 const asyncHandler = require('express-async-handler');
-const Wishlist = require('../schemas/Wishlist');
-const Product = require('../schemas/Product');
+const wishlistService = require('../services/wishlistService');
 
 // @desc    Get user's wishlist
 // @route   GET /api/wishlist
 // @access  Private
 const getWishlist = asyncHandler(async (req, res) => {
-  let wishlist = await Wishlist.findOne({ user: req.user._id })
-    .populate({
-      path: 'products',
-      select: 'name price comparePrice images stock category slug',
-      populate: { path: 'category', select: 'name' }
-    });
-
-  if (!wishlist) {
-    wishlist = await Wishlist.create({ user: req.user._id, products: [] });
-  }
-
-  res.status(200).json({
-    success: true,
-    data: {
-      items: wishlist.products.map(product => ({
-        product: product
-      }))
-    },
-  });
+  const data = await wishlistService.getWishlist(req.user._id);
+  res.status(200).json({ success: true, data });
 });
 
 // @desc    Add product to wishlist
 // @route   POST /api/wishlist/:productId
 // @access  Private
 const addToWishlist = asyncHandler(async (req, res) => {
-  const { productId } = req.params;
-
-  // Verify product exists
-  const product = await Product.findById(productId);
-  if (!product) {
-    res.status(404);
-    throw new Error('Product not found');
-  }
-
-  let wishlist = await Wishlist.findOne({ user: req.user._id });
-
-  if (!wishlist) {
-    wishlist = await Wishlist.create({
-      user: req.user._id,
-      products: [productId],
-    });
-  } else {
-    if (!wishlist.products.includes(productId)) {
-      wishlist.products.push(productId);
-      await wishlist.save();
-    }
-  }
+  await wishlistService.addToWishlist({
+    userId: req.user._id,
+    productId: req.params.productId,
+  });
 
   res.status(201).json({
     success: true,
@@ -64,20 +28,10 @@ const addToWishlist = asyncHandler(async (req, res) => {
 // @route   DELETE /api/wishlist/:productId
 // @access  Private
 const removeFromWishlist = asyncHandler(async (req, res) => {
-  const { productId } = req.params;
-
-  let wishlist = await Wishlist.findOne({ user: req.user._id });
-
-  if (!wishlist) {
-    res.status(404);
-    throw new Error('Wishlist not found');
-  }
-
-  wishlist.products = wishlist.products.filter(
-    (id) => id.toString() !== productId
-  );
-
-  await wishlist.save();
+  await wishlistService.removeFromWishlist({
+    userId: req.user._id,
+    productId: req.params.productId,
+  });
 
   res.status(200).json({
     success: true,

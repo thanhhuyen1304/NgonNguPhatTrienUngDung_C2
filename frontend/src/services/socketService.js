@@ -9,6 +9,13 @@ class SocketService {
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.listeners = new Map();
+    this.dispatch = null;
+    this.reconnectTimeouts = new Set();
+  }
+
+  // Set Redux dispatch
+  setDispatch(dispatch) {
+    this.dispatch = dispatch;
   }
 
   // Initialize socket connection
@@ -66,11 +73,6 @@ class SocketService {
       this.isConnected = false;
       this.isConnecting = false;
       this.emit('socket_disconnected', { reason });
-      
-      if (reason === 'io server disconnect') {
-        // Server disconnected, try to reconnect
-        this.socket.connect();
-      }
     });
 
     this.socket.on('connect_error', (error) => {
@@ -81,11 +83,13 @@ class SocketService {
       
       if (this.reconnectAttempts <= this.maxReconnectAttempts) {
         console.log(`🔄 Reconnection attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
-        setTimeout(() => {
+        const timeoutId = setTimeout(() => {
+          this.reconnectTimeouts.delete(timeoutId);
           if (!this.isConnected) {
             this.socket?.connect();
           }
         }, 2000 * this.reconnectAttempts);
+        this.reconnectTimeouts.add(timeoutId);
       } else {
         toast.error('Không thể kết nối real-time updates');
       }
@@ -110,6 +114,26 @@ class SocketService {
       
       // Emit to registered listeners
       this.emit('order_status_updated', data);
+    });
+
+    // New generic notifications
+    this.socket.on('new_notification', (notification) => {
+      console.log('🔔 New notification received:', notification);
+      
+      // Show toast
+      toast(notification.message, {
+        icon: '🔔',
+        duration: 5000,
+      });
+
+      // Dispatch to Redux store if available
+      if (this.dispatch) {
+        // Need to import addNotification dynamically or pass it in
+        const { addNotification } = require('../store/slices/notificationSlice');
+        this.dispatch(addNotification(notification));
+      }
+
+      this.emit('new_notification', notification);
     });
 
     // New order notifications
@@ -184,6 +208,9 @@ class SocketService {
 
   // Disconnect socket
   disconnect() {
+    this.reconnectTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
+    this.reconnectTimeouts.clear();
+
     if (this.socket) {
       console.log('🔌 Disconnecting socket...');
       this.socket.disconnect();

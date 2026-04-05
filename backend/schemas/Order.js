@@ -109,10 +109,16 @@ const orderSchema = new mongoose.Schema(
       type: String,
       maxlength: [500, 'Note cannot exceed 500 characters'],
     },
-    shipper: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+    couponCode: {
+      type: String,
+      trim: true,
+      uppercase: true,
       default: null,
+    },
+    discountAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
     currentLocation: {
       latitude: { type: Number },
@@ -196,21 +202,26 @@ orderSchema.pre('save', function (next) {
 });
 
 // Method to calculate prices (all in VND)
-orderSchema.methods.calculatePrices = function (taxRate = 0.1, shippingRate = 30000) {
+orderSchema.methods.calculatePrices = function (taxRate = 0.1, shippingRate = 30000, discountAmount = 0) {
   // Calculate items price in VND
   this.itemsPrice = this.items.reduce(
     (acc, item) => acc + item.price * item.quantity,
     0
   );
-  
+
   // Calculate tax in VND
   this.taxPrice = Math.round(this.itemsPrice * taxRate);
-  
+
   // Free shipping for orders over 500,000 VND
   this.shippingPrice = this.itemsPrice > 500000 ? 0 : shippingRate;
-  
+
+  this.discountAmount = Math.max(0, discountAmount || 0);
+
   // Total price in VND
-  this.totalPrice = this.itemsPrice + this.taxPrice + this.shippingPrice;
+  this.totalPrice = Math.max(
+    0,
+    this.itemsPrice + this.taxPrice + this.shippingPrice - this.discountAmount
+  );
 };
 
 // Method to get Vietnamese status text

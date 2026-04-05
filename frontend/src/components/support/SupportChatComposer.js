@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   PaperAirplaneIcon,
-  PhotoIcon,
+  PaperClipIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 
@@ -20,7 +20,7 @@ const SupportChatComposer = ({
   const hasContent = value.trim() || attachments.length > 0;
 
   return (
-    <div className="border-t border-gray-200 bg-white p-4 sm:p-5">
+    <div className="border-t border-gray-100 bg-white p-4">
       {attachments.length > 0 ? (
         <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
           {attachments.map((attachment) => (
@@ -32,8 +32,9 @@ const SupportChatComposer = ({
                   className="h-28 w-full object-cover"
                 />
               ) : (
-                <div className="flex h-28 items-center justify-center px-3 text-center text-sm text-gray-600">
-                  {attachment.name}
+                <div className="flex h-28 flex-col items-center justify-center bg-gray-50 px-3 text-center text-xs text-gray-400">
+                  <PaperClipIcon className="h-8 w-8 mb-2" />
+                  <span className="truncate w-full px-2">{attachment.name}</span>
                 </div>
               )}
 
@@ -59,7 +60,7 @@ const SupportChatComposer = ({
         <textarea
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          rows={3}
+          rows={2}
           disabled={disabled || sending}
           placeholder={placeholder}
           className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-transparent focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100"
@@ -71,11 +72,10 @@ const SupportChatComposer = ({
               ? 'cursor-not-allowed bg-gray-100 text-gray-400'
               : 'cursor-pointer bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}>
-            <PhotoIcon className="h-5 w-5" />
-            Đính kèm ảnh
+            <PaperClipIcon className="h-5 w-5" />
+            Đính kèm tệp
             <input
               type="file"
-              accept="image/*"
               multiple
               disabled={disabled || sending}
               onChange={onFileChange}

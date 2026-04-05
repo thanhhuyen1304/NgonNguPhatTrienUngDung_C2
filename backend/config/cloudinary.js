@@ -1,8 +1,11 @@
 const cloudinary = require('cloudinary').v2;
-const CloudinaryStorage = require('multer-storage-cloudinary');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
 
-const hasCloudinary = Boolean(process.env.CLOUDINARY_CLOUD_NAME);
+const hasCloudinary = Boolean(
+  process.env.CLOUDINARY_CLOUD_NAME && 
+  !process.env.CLOUDINARY_CLOUD_NAME.startsWith('your_')
+);
 
 if (hasCloudinary) {
   cloudinary.config({
@@ -43,6 +46,14 @@ const upload = multer({
 });
 
 const deleteImage = async (publicId) => {
+  if (!publicId) {
+    return null;
+  }
+
+  if (!hasCloudinary) {
+    return { result: 'skipped_no_cloudinary' };
+  }
+
   try {
     return await cloudinary.uploader.destroy(publicId);
   } catch (error) {

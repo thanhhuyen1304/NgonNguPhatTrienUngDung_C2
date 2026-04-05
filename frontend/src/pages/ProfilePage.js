@@ -1,11 +1,17 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateProfile, changePassword, setCredentials, getMe } from '../store/slices/authSlice';
 import toast from 'react-hot-toast';
 import { UserCircleIcon, CameraIcon } from '@heroicons/react/24/outline';
-
-const strongPasswordRule = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d\s])(?=\S+$).{8,}$/;
-const strongPasswordHint = 'Mật khẩu phải có ít nhất 8 ký tự, gồm chữ hoa, chữ thường, số, ký tự đặc biệt và không có dấu cách';
+import {
+  buildAvatarFallbackUser,
+  buildProfileUpdateFormData,
+  buildProfileUpdatePayload,
+  createAddressText,
+  createEmptyPasswordData,
+  createProfileFormData,
+  validatePasswordChange,
+} from '../services/profileService';
 
 const ProfilePage = () => {
   const dispatch = useDispatch();
@@ -15,21 +21,14 @@ const ProfilePage = () => {
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(user?.avatar || null);
   
-  const [formData, setFormData] = useState({
-    name: user?.name || '',
-    phone: user?.phone || '',
-    street: user?.address?.street || '',
-    city: user?.address?.city || '',
-    state: user?.address?.state || '',
-    zipCode: user?.address?.zipCode || '',
-    country: user?.address?.country || 'Vietnam',
-  });
+  const [formData, setFormData] = useState(createProfileFormData(user));
 
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  });
+  const [passwordData, setPasswordData] = useState(createEmptyPasswordData());
+
+  useEffect(() => {
+    setFormData(createProfileFormData(user));
+    setAvatarPreview(user?.avatar || null);
+  }, [user]);
 
   const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
@@ -41,46 +40,36 @@ const ProfilePage = () => {
       const previewUrl = URL.createObjectURL(file);
       setAvatarPreview(previewUrl);
 
-      // Auto upload avatar immediately
-      const formDataWithAvatar = new FormData();
-      formDataWithAvatar.append('avatar', file);
+      const formDataWithAvatar = buildProfileUpdateFormData({
+        formData,
+        avatarFile: file,
+      });
 
       const updatedUser = await dispatch(updateProfile(formDataWithAvatar)).unwrap();
-      console.log('updateProfile response:', updatedUser);
       toast.success('Avatar updated');
 
-      // Update redux auth state so Header reflects new avatar immediately
       if (updatedUser) {
-        // refresh server data to ensure avatar URL is correct
         try {
-          const me = await dispatch(getMe()).unwrap();
-          console.log('getMe response:', me);
-        } catch (err) {
-          // fallback to returned payload
-          console.warn('getMe failed, falling back to returned payload', err);
-          dispatch(setCredentials(updatedUser));
+          await dispatch(getMe()).unwrap();
+        } catch {
+          dispatch(setCredentials({ user: updatedUser }));
         }
-        // debug current localStorage
-        try {
-          console.log('localStorage.user after upload:', localStorage.getItem('user'));
-        } catch (e) {
-          // ignore
-        }
-        // Use returned avatar as preview if available
+
         if (updatedUser.avatar) {
           setAvatarPreview(updatedUser.avatar);
         } else {
-          // Backend did not return avatar (e.g., Cloudinary not configured) — use local preview as fallback
           const fallbackUrl = previewUrl || avatarPreview;
           if (fallbackUrl) {
-            // Update redux and localStorage so header shows the preview immediately
             try {
-              const newUser = { ...(updatedUser || user), avatar: fallbackUrl };
-              dispatch(setCredentials(newUser));
+              const newUser = buildAvatarFallbackUser({
+                currentUser: user,
+                updatedUser,
+                fallbackAvatar: fallbackUrl,
+              });
+              dispatch(setCredentials({ user: newUser }));
               localStorage.setItem('user', JSON.stringify(newUser));
               setAvatarPreview(fallbackUrl);
-            } catch (e) {
-              console.warn('Failed to set fallback avatar in redux/localStorage', e);
+            } catch {
             }
           }
         }
@@ -106,30 +95,10 @@ const ProfilePage = () => {
     e.preventDefault();
     
     try {
-      const updateData = {
-        name: formData.name,
-        phone: formData.phone,
-        address: {
-          street: formData.street,
-          city: formData.city,
-          state: formData.state,
-          zipCode: formData.zipCode,
-          country: formData.country,
-        },
-      };
+      const updateData = buildProfileUpdatePayload(formData);
 
       if (avatarFile) {
-        // Convert file to base64 or send as FormData
-        const formDataWithAvatar = new FormData();
-        formDataWithAvatar.append('name', formData.name);
-        formDataWithAvatar.append('phone', formData.phone);
-        formDataWithAvatar.append('street', formData.street);
-        formDataWithAvatar.append('city', formData.city);
-        formDataWithAvatar.append('state', formData.state);
-        formDataWithAvatar.append('zipCode', formData.zipCode);
-        formDataWithAvatar.append('country', formData.country);
-        formDataWithAvatar.append('avatar', avatarFile);
-        
+        const formDataWithAvatar = buildProfileUpdateFormData({ formData, avatarFile });
         await dispatch(updateProfile(formDataWithAvatar)).unwrap();
       } else {
         await dispatch(updateProfile(updateData)).unwrap();
@@ -146,13 +115,9 @@ const ProfilePage = () => {
   const handleSubmitPassword = async (e) => {
     e.preventDefault();
 
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error('Mật khẩu xác nhận không khớp');
-      return;
-    }
-
-    if (!strongPasswordRule.test(passwordData.newPassword)) {
-      toast.error(strongPasswordHint);
+    const validationError = validatePasswordChange(passwordData);
+    if (validationError) {
+      toast.error(validationError);
       return;
     }
 
@@ -163,11 +128,7 @@ const ProfilePage = () => {
       })).unwrap();
 
       toast.success('Mật khẩu đã được thay đổi');
-      setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
+      setPasswordData(createEmptyPasswordData());
       setChangePassMode(false);
     } catch (error) {
       toast.error(error || 'Lỗi thay đổi mật khẩu');
@@ -236,15 +197,7 @@ const ProfilePage = () => {
                 onClick={() => {
                   setEditMode(!editMode);
                   if (!editMode) {
-                    setFormData({
-                      name: user?.name || '',
-                      phone: user?.phone || '',
-                      street: user?.address?.street || '',
-                      city: user?.address?.city || '',
-                      state: user?.address?.state || '',
-                      zipCode: user?.address?.zipCode || '',
-                      country: user?.address?.country || 'Vietnam',
-                    });
+                    setFormData(createProfileFormData(user));
                   } else {
                     setAvatarFile(null);
                     setAvatarPreview(user?.avatar || null);
@@ -316,33 +269,6 @@ const ProfilePage = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Tỉnh
-                      </label>
-                      <input
-                        type="text"
-                        name="state"
-                        value={formData.state}
-                        onChange={handleChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 mt-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Mã bưu điện
-                      </label>
-                      <input
-                        type="text"
-                        name="zipCode"
-                        value={formData.zipCode}
-                        onChange={handleChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
                         Quốc gia
                       </label>
                       <input
@@ -382,7 +308,7 @@ const ProfilePage = () => {
                   <div>
                     <p className="text-sm text-gray-600">Địa chỉ</p>
                     <p className="font-semibold">
-                      {user.getFullAddress?.() || 'Chưa cập nhật'}
+                      {createAddressText(user?.address) || 'Chưa cập nhật'}
                     </p>
                   </div>
                 )}
@@ -399,11 +325,7 @@ const ProfilePage = () => {
                   onClick={() => {
                     setChangePassMode(!changePassMode);
                     if (!changePassMode) {
-                      setPasswordData({
-                        currentPassword: '',
-                        newPassword: '',
-                        confirmPassword: '',
-                      });
+                      setPasswordData(createEmptyPasswordData());
                     }
                   }}
                   className="text-blue-600 hover:text-blue-800 font-semibold text-sm"

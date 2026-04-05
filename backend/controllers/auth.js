@@ -11,7 +11,7 @@ const {
   issueAuthSession,
   buildResetPasswordUrl,
   verifyRefreshToken,
-} = require('./auth.helpers');
+} = require('../services/authHelpers');
 const { uploadBuffer } = require('../config/cloudinary');
 
 const register = asyncHandler(async (req, res) => {
@@ -19,7 +19,7 @@ const register = asyncHandler(async (req, res) => {
   const userExists = await User.findOne({ email });
 
   if (userExists) {
-    throw new AppError('User already exists with this email', 400);
+    throw new AppError('Email này đã được sử dụng', 400);
   }
 
   const user = await User.create({ name, email, password, role: 'user' });
@@ -27,7 +27,7 @@ const register = asyncHandler(async (req, res) => {
 
   res.status(201).json({
     success: true,
-    message: 'Registration successful',
+    message: 'Đăng ký thành công',
     data: {
       user: buildSafeUser(user),
       accessToken,
@@ -40,27 +40,27 @@ const login = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email }).select('+password +refreshToken');
 
   if (!user) {
-    throw new AppError('Invalid email or password', 401);
+    throw new AppError('Email hoặc mật khẩu không đúng', 401);
   }
 
   if (!user.password) {
-    throw new AppError('Please login using Google', 401);
+    throw new AppError('Vui lòng đăng nhập bằng Google', 401);
   }
 
   const isMatch = await user.comparePassword(password);
   if (!isMatch) {
-    throw new AppError('Invalid email or password', 401);
+    throw new AppError('Email hoặc mật khẩu không đúng', 401);
   }
 
   if (!user.isActive) {
-    throw new AppError('Your account has been deactivated', 401);
+    throw new AppError('Tài khoản của bạn đã bị vô hiệu hóa', 401);
   }
 
   const accessToken = await issueAuthSession(user, res);
 
   res.json({
     success: true,
-    message: 'Login successful',
+    message: 'Đăng nhập thành công',
     data: {
       user: buildSafeUser(user),
       accessToken,
@@ -87,7 +87,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'If that email exists, a password reset link is ready.',
+    message: 'Nếu email tồn tại, hệ thống đã sẵn sàng liên kết đặt lại mật khẩu.',
     data: {
       previewResetUrl,
       expiresInMinutes: allowInternalPasswordResetPreview && previewResetUrl ? passwordResetExpiresMinutes : undefined,
@@ -105,11 +105,11 @@ const resetPassword = asyncHandler(async (req, res) => {
   }).select('+password +refreshToken +passwordResetToken +passwordResetExpires');
 
   if (!user) {
-    throw new AppError('Reset token is invalid or has expired', 400);
+    throw new AppError('Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn', 400);
   }
 
   if (!user.isActive) {
-    throw new AppError('Your account has been deactivated', 401);
+    throw new AppError('Tài khoản của bạn đã bị vô hiệu hóa', 401);
   }
 
   user.password = newPassword;
@@ -120,7 +120,7 @@ const resetPassword = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'Password reset successful',
+    message: 'Đặt lại mật khẩu thành công',
     data: {
       user: buildSafeUser(user),
       accessToken,
@@ -135,25 +135,25 @@ const refreshToken = asyncHandler(async (req, res) => {
     clearAuthCookies(res);
     return res.status(401).json({
       success: false,
-      message: 'Refresh token is required',
+      message: 'Thiếu refresh token',
     });
   }
 
   const decoded = verifyRefreshToken(token);
   if (!decoded) {
     clearAuthCookies(res);
-    throw new AppError('Invalid or expired refresh token', 401);
+    throw new AppError('Refresh token không hợp lệ hoặc đã hết hạn', 401);
   }
 
   const user = await User.findById(decoded.id).select('+refreshToken');
   if (!user || !user.refreshToken || user.refreshToken !== hashToken(token)) {
     clearAuthCookies(res);
-    throw new AppError('Invalid refresh token', 401);
+    throw new AppError('Refresh token không hợp lệ', 401);
   }
 
   if (!user.isActive) {
     clearAuthCookies(res);
-    throw new AppError('Your account has been deactivated', 401);
+    throw new AppError('Tài khoản của bạn đã bị vô hiệu hóa', 401);
   }
 
   const accessToken = await issueAuthSession(user, res);
@@ -169,7 +169,7 @@ const googleCallback = asyncHandler(async (req, res) => {
 
   if (!user || !user.isActive) {
     clearAuthCookies(res);
-    throw new AppError('Your account has been deactivated', 401);
+    throw new AppError('Tài khoản của bạn đã bị vô hiệu hóa', 401);
   }
 
   await issueAuthSession(user, res);
@@ -181,7 +181,7 @@ const logout = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(req.user._id, { refreshToken: null });
   clearAuthCookies(res);
 
-  res.json({ success: true, message: 'Logged out successfully' });
+  res.json({ success: true, message: 'Đăng xuất thành công' });
 });
 
 const getMe = asyncHandler(async (req, res) => {
@@ -198,23 +198,28 @@ const updateProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
 
   if (!user) {
-    throw new AppError('User not found', 404);
+    throw new AppError('Không tìm thấy người dùng', 404);
   }
 
-  user.name = name || user.name;
-  user.phone = phone || user.phone;
+  if (name !== undefined) {
+    user.name = name;
+  }
+
+  if (phone !== undefined) {
+    user.phone = phone;
+  }
 
   const nextAddress = address && typeof address === 'object'
     ? address
     : { street, city, state, zipCode, country };
 
-  if (Object.values(nextAddress).some(Boolean)) {
+  if (Object.values(nextAddress).some((value) => value !== undefined)) {
     user.address = {
-      street: nextAddress.street || user.address?.street,
-      city: nextAddress.city || user.address?.city,
-      state: nextAddress.state || user.address?.state,
-      zipCode: nextAddress.zipCode || user.address?.zipCode,
-      country: nextAddress.country || user.address?.country,
+      street: nextAddress.street !== undefined ? nextAddress.street : user.address?.street,
+      city: nextAddress.city !== undefined ? nextAddress.city : user.address?.city,
+      state: nextAddress.state !== undefined ? nextAddress.state : user.address?.state,
+      zipCode: nextAddress.zipCode !== undefined ? nextAddress.zipCode : user.address?.zipCode,
+      country: nextAddress.country !== undefined ? nextAddress.country : user.address?.country,
     };
   }
 
@@ -237,7 +242,7 @@ const updateProfile = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'Profile updated successfully',
+    message: 'Cập nhật hồ sơ thành công',
     data: { user: buildSafeUser(updatedUser) },
   });
 });
@@ -247,12 +252,12 @@ const changePassword = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id).select('+password +refreshToken');
 
   if (!user.password) {
-    throw new AppError('Cannot change password for Google-only account', 400);
+    throw new AppError('Không thể đổi mật khẩu cho tài khoản chỉ đăng nhập bằng Google', 400);
   }
 
   const isMatch = await user.comparePassword(currentPassword);
   if (!isMatch) {
-    throw new AppError('Current password is incorrect', 401);
+    throw new AppError('Mật khẩu hiện tại không đúng', 401);
   }
 
   user.password = newPassword;
@@ -260,7 +265,7 @@ const changePassword = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'Password changed successfully',
+    message: 'Đổi mật khẩu thành công',
     data: { accessToken },
   });
 });
@@ -269,21 +274,21 @@ const applyShipper = asyncHandler(async (req, res) => {
   const { vehicleType, licensePlate, drivingLicense, phone, experience, workingHours } = req.body;
 
   if (!vehicleType || !licensePlate || !phone) {
-    throw new AppError('Vehicle type, license plate, and phone are required', 400);
+    throw new AppError('Loại xe, biển số và số điện thoại là bắt buộc', 400);
   }
 
   const user = await User.findById(req.user._id);
 
   if (!user) {
-    throw new AppError('User not found', 404);
+    throw new AppError('Không tìm thấy người dùng', 404);
   }
 
   if (user.role === 'shipper') {
-    throw new AppError('You are already a delivery partner', 400);
+    throw new AppError('Bạn đã là đối tác giao hàng', 400);
   }
 
   if (user.shipperInfo && user.shipperInfo.status === 'pending') {
-    throw new AppError('You already have a pending shipper application', 400);
+    throw new AppError('Bạn đã có đơn đăng ký shipper đang chờ duyệt', 400);
   }
 
   user.shipperInfo = {
@@ -304,7 +309,7 @@ const applyShipper = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    message: 'Shipper application submitted successfully. We will review your application within 24-48 hours.',
+    message: 'Đơn đăng ký shipper đã được gửi thành công. Chúng tôi sẽ xem xét trong vòng 24-48 giờ.',
     data: { user: buildSafeUser(user) },
   });
 });

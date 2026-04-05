@@ -4,6 +4,14 @@ const https = require('https');
 const Order = require('../schemas/Order');
 const Cart = require('../schemas/Cart');
 const Product = require('../schemas/Product');
+const Payment = require('../schemas/Payment');
+const { validateCoupon, applyCouponToOrder } = require('../services/couponService');
+
+const MOMO_API_URL = process.env.MOMO_API_URL || 'https://test-payment.momo.vn/v2/gateway/api/create';
+const MOMO_QUERY_URL = process.env.MOMO_QUERY_URL || 'https://test-payment.momo.vn/v2/gateway/api/query';
+const MOMO_REQUEST_TYPE = process.env.MOMO_REQUEST_TYPE || 'captureWallet';
+const MOMO_LANG = process.env.MOMO_LANG || 'vi';
+const MOMO_AUTO_CAPTURE = process.env.MOMO_AUTO_CAPTURE !== 'false';
 
 /* ============================================================
    Helper: Tạo chữ ký HMAC SHA256 cho MoMo
@@ -21,10 +29,11 @@ const createMomoSignature = (rawSignature, secretKey) => {
 const callMomoAPI = (data) => {
   return new Promise((resolve, reject) => {
     const body = JSON.stringify(data);
+    const targetUrl = new URL(MOMO_API_URL);
     const options = {
-      hostname: 'test-payment.momo.vn',
-      port: 443,
-      path: '/v2/gateway/api/create',
+      hostname: targetUrl.hostname,
+      port: targetUrl.port || 443,
+      path: `${targetUrl.pathname}${targetUrl.search}`,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -61,6 +70,22 @@ const finalizeMomoPayment = async ({ order, resultCode, transactionId, momoOrder
         ...(actor === 'ipn' ? { lastWebhookAt: new Date() } : { lastVerifiedAt: new Date() }),
       };
       await order.save();
+
+      await Payment.findOneAndUpdate(
+        { order: order._id },
+        {
+          $set: {
+            status: 'failed',
+            providerOrderId: order.paymentDetails?.momoOrderId || momoOrderId || null,
+            providerTransactionId: transactionId || null,
+            callbackPayload: actor === 'ipn' ? { resultCode } : undefined,
+            responsePayload: actor === 'verify' ? { resultCode } : undefined,
+            lastResultCode: String(resultCode),
+            failedAt: new Date(),
+          },
+        },
+        { new: true }
+      );
     }
 
     return order;
@@ -121,6 +146,40 @@ const finalizeMomoPayment = async ({ order, resultCode, transactionId, momoOrder
       };
 
       await lockedOrder.save({ session });
+
+      await Payment.findOneAndUpdate(
+        { order: lockedOrder._id },
+        {
+          $set: {
+            status: 'paid',
+            providerOrderId: lockedOrder.paymentDetails?.momoOrderId || momoOrderId || null,
+            providerTransactionId: transactionId || null,
+            paidAt: new Date(),
+            verifiedAt: actor === 'verify' ? new Date() : undefined,
+            callbackPayload: actor === 'ipn' ? { resultCode } : undefined,
+            responsePayload: actor === 'verify' ? { resultCode } : undefined,
+            lastResultCode: '0',
+          },
+        },
+        { new: true, session }
+      );
+
+      if (lockedOrder.couponCode && lockedOrder.discountAmount > 0) {
+        const validation = await validateCoupon({
+          code: lockedOrder.couponCode,
+          userId: lockedOrder.user,
+          orderAmount: lockedOrder.itemsPrice,
+        });
+
+        if (validation.valid) {
+          await applyCouponToOrder({
+            coupon: validation.coupon,
+            userId: lockedOrder.user,
+            session,
+          });
+        }
+      }
+
       await Cart.findOneAndUpdate(
         { user: lockedOrder.user },
         { items: [], totalItems: 0, totalPrice: 0 },
@@ -140,11 +199,22 @@ const finalizeMomoPayment = async ({ order, resultCode, transactionId, momoOrder
    @access  Private
 ============================================================ */
 const createMomoPayment = asyncHandler(async (req, res) => {
-  const { shippingAddress, paymentMethod, note, checkoutRequestKey } = req.body;
+  const { shippingAddress, paymentMethod, note, checkoutRequestKey, couponCode } = req.body;
+
+  const partnerCode = process.env.MOMO_PARTNER_CODE;
+  const accessKey   = process.env.MOMO_ACCESS_KEY;
+  const secretKey   = process.env.MOMO_SECRET_KEY;
+  const redirectUrl = process.env.MOMO_REDIRECT_URL;
+  const ipnUrl      = process.env.MOMO_IPN_URL;
 
   if (paymentMethod !== 'momo') {
     res.status(400);
-    throw new Error('Payment method must be momo');
+    throw new Error('Phương thức thanh toán phải là MoMo');
+  }
+
+  if (!partnerCode || !accessKey || !secretKey || !redirectUrl || !ipnUrl) {
+    res.status(500);
+    throw new Error('Thanh toán MoMo chưa được cấu hình trên máy chủ');
   }
 
   // ── 1. Lấy giỏ hàng ────────────────────────────────────────
@@ -155,7 +225,7 @@ const createMomoPayment = asyncHandler(async (req, res) => {
 
   if (!cart || cart.items.length === 0) {
     res.status(400);
-    throw new Error('Cart is empty');
+    throw new Error('Giỏ hàng đang trống');
   }
 
   if (checkoutRequestKey) {
@@ -200,6 +270,25 @@ const createMomoPayment = asyncHandler(async (req, res) => {
     // ⚠️ KHÔNG trừ stock ở đây — chỉ trừ sau khi MoMo xác nhận thanh toán thành công
   }
 
+  let discountAmount = 0;
+  let normalizedCouponCode = null;
+
+  if (couponCode) {
+    const validation = await validateCoupon({
+      code: couponCode,
+      userId: req.user._id,
+      orderAmount: cart.totalPrice,
+    });
+
+    if (!validation.valid) {
+      res.status(400);
+      throw new Error(validation.reason);
+    }
+
+    discountAmount = validation.discountAmount;
+    normalizedCouponCode = validation.coupon.code;
+  }
+
   // ── 3. Tạo Order trong DB (paymentStatus = pending) ─────────
   const order = new Order({
     user: req.user._id,
@@ -213,8 +302,10 @@ const createMomoPayment = asyncHandler(async (req, res) => {
     paymentStatus: 'pending',
     checkoutRequestKey: checkoutRequestKey || null,
     note,
+    couponCode: normalizedCouponCode,
+    discountAmount,
   });
-  order.calculatePrices();
+  order.calculatePrices(undefined, undefined, discountAmount);
   order.statusHistory.push({
     status: 'pending',
     note: 'Order placed - awaiting MoMo payment',
@@ -225,25 +316,14 @@ const createMomoPayment = asyncHandler(async (req, res) => {
   // ⚠️ KHÔNG xóa giỏ hàng ở đây — chỉ xóa sau khi thanh toán thành công
 
   // ── 4. Tạo MoMo payment request ────────────────────────────
-  const partnerCode = process.env.MOMO_PARTNER_CODE;
-  const accessKey   = process.env.MOMO_ACCESS_KEY;
-  const secretKey   = process.env.MOMO_SECRET_KEY;
-  const redirectUrl = process.env.MOMO_REDIRECT_URL;
-  const ipnUrl      = process.env.MOMO_IPN_URL;
-
-  if (!partnerCode || !accessKey || !secretKey || !redirectUrl || !ipnUrl) {
-    res.status(500);
-    throw new Error('MoMo payment is not configured on the server');
-  }
-
   const orderId      = `${order._id}-${Date.now()}`;
   const requestId    = `${partnerCode}-${Date.now()}`;
   const amount       = order.totalPrice;         // VND, số nguyên
   const orderInfo    = `Thanh toán đơn hàng ${order.orderNumber}`;
-  const requestType  = 'payWithMethod';
+  const requestType  = MOMO_REQUEST_TYPE;
   const extraData    = Buffer.from(JSON.stringify({ orderId: order._id.toString() })).toString('base64');
-  const lang         = 'vi';
-  const autoCapture  = true;
+  const lang         = MOMO_LANG;
+  const autoCapture  = MOMO_AUTO_CAPTURE;
 
   const rawSignature =
     `accessKey=${accessKey}` +
@@ -288,7 +368,7 @@ const createMomoPayment = asyncHandler(async (req, res) => {
   if (momoResponse.resultCode !== 0) {
     console.error('❌ MoMo rejected:', momoResponse);
     res.status(400);
-    throw new Error(`MoMo error: ${momoResponse.message}`);
+    throw new Error(`MoMo trả về lỗi: ${momoResponse.message}`);
   }
 
   // Lưu MoMo orderId vào order để dùng khi verify
@@ -297,6 +377,19 @@ const createMomoPayment = asyncHandler(async (req, res) => {
     transactionId: null,
   };
   await order.save();
+
+  await Payment.create({
+    user: req.user._id,
+    order: order._id,
+    provider: 'momo',
+    status: 'pending',
+    amount: order.totalPrice,
+    checkoutRequestKey: checkoutRequestKey || null,
+    providerOrderId: orderId,
+    requestPayload: momoPayload,
+    responsePayload: momoResponse,
+    note: note || null,
+  });
 
   res.status(201).json({
     success: true,
@@ -328,7 +421,7 @@ const momoIPN = asyncHandler(async (req, res) => {
   const accessKey = process.env.MOMO_ACCESS_KEY;
 
   if (!secretKey || !accessKey) {
-    return res.status(500).json({ message: 'MoMo payment is not configured on the server' });
+    return res.status(500).json({ message: 'Thanh toán MoMo chưa được cấu hình trên máy chủ' });
   }
 
   const rawSignature =
@@ -350,7 +443,7 @@ const momoIPN = asyncHandler(async (req, res) => {
 
   if (signature !== expectedSignature) {
     console.error('❌ MoMo IPN signature mismatch');
-    return res.status(400).json({ message: 'Invalid signature' });
+    return res.status(400).json({ message: 'Chữ ký không hợp lệ' });
   }
 
   const order = await Order.findOne({
@@ -362,7 +455,7 @@ const momoIPN = asyncHandler(async (req, res) => {
 
   if (!order) {
     console.error('❌ MoMo IPN: Order not found for orderId:', orderId);
-    return res.status(404).json({ message: 'Order not found' });
+    return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
   }
 
   await finalizeMomoPayment({
@@ -387,7 +480,7 @@ const verifyMomoPayment = asyncHandler(async (req, res) => {
 
   if (!momoOrderId) {
     res.status(400);
-    throw new Error('momoOrderId is required');
+    throw new Error('Thiếu momoOrderId');
   }
 
   // Tìm order theo MoMo orderId
@@ -401,7 +494,7 @@ const verifyMomoPayment = asyncHandler(async (req, res) => {
 
   if (!order) {
     res.status(404);
-    throw new Error('Order not found');
+    throw new Error('Không tìm thấy đơn hàng');
   }
 
   // Nếu IPN đã update rồi thì trả về luôn
@@ -421,7 +514,7 @@ const verifyMomoPayment = asyncHandler(async (req, res) => {
 
   if (!partnerCode || !accessKey || !secretKey) {
     res.status(500);
-    throw new Error('MoMo payment is not configured on the server');
+    throw new Error('Thanh toán MoMo chưa được cấu hình trên máy chủ');
   }
 
   const rawSignature =
@@ -444,10 +537,11 @@ const verifyMomoPayment = asyncHandler(async (req, res) => {
   try {
     queryResult = await new Promise((resolve, reject) => {
       const body = JSON.stringify(queryPayload);
+      const queryUrl = new URL(MOMO_QUERY_URL);
       const options = {
-        hostname: 'test-payment.momo.vn',
-        port: 443,
-        path: '/v2/gateway/api/query',
+        hostname: queryUrl.hostname,
+        port: queryUrl.port || 443,
+        path: `${queryUrl.pathname}${queryUrl.search}`,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

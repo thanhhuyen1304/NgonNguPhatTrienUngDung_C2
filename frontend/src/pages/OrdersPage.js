@@ -69,9 +69,17 @@ const OrdersPage = () => {
   const statusTranslations = {
     pending: 'Chờ xác nhận',
     confirmed: 'Đã xác nhận',
+    processing: 'Đang xử lý',
     shipped: 'Đang giao',
     delivered: 'Đã giao',
     cancelled: 'Đã hủy',
+  };
+
+  const paymentStatusTranslations = {
+    pending: 'Chờ thanh toán',
+    paid: 'Đã thanh toán',
+    failed: 'Thanh toán thất bại',
+    refunded: 'Đã hoàn tiền',
   };
 
   if (loading && orders.length === 0) {
@@ -162,7 +170,7 @@ const OrdersPage = () => {
                       <div>
                         <p className="text-gray-600">Thanh toán</p>
                         <p className="font-medium text-gray-900 capitalize">
-                          {order.paymentStatus}
+                          {paymentStatusTranslations[order.paymentStatus] || order.paymentStatus}
                         </p>
                       </div>
                     </div>

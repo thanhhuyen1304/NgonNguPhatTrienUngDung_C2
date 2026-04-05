@@ -4,6 +4,7 @@ import { useDispatch } from 'react-redux';
 import { bootstrapAuth } from '../store/slices/authSlice';
 import Loading from '../components/common/Loading';
 import toast from 'react-hot-toast';
+import { getDefaultRouteForUser } from '../utils/roleRedirect';
 
 const GoogleCallback = () => {
   const [searchParams] = useSearchParams();
@@ -28,17 +29,10 @@ const GoogleCallback = () => {
     if (status === 'success') {
       const handleCallback = async () => {
         try {
-          const result = await dispatch(bootstrapAuth()).unwrap();
+          const user = await dispatch(bootstrapAuth()).unwrap();
           toast.success('Login successful!');
-          
-          // Role-based redirection
-          if (result.role === 'admin') {
-            navigate('/admin');
-          } else if (result.role === 'shipper') {
-            navigate('/shipper');
-          } else {
-            navigate('/');
-          }
+
+          navigate(getDefaultRouteForUser(user), { replace: true });
         } catch (err) {
           toast.error(err || 'Authentication failed');
           navigate('/login');

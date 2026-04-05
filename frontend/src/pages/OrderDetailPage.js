@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { getOrderById } from '../store/slices/orderSlice';
+import { cancelOrder, getOrderById } from '../store/slices/orderSlice';
 import Loading from '../components/common/Loading';
 import toast from 'react-hot-toast';
 import socketService from '../services/socketService';
@@ -57,7 +57,7 @@ const OrderDetailPage = () => {
   if (!order) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
-        <p className="text-gray-600">Order not found</p>
+        <p className="text-gray-600">Không tìm thấy đơn hàng</p>
       </div>
     );
   }
@@ -76,9 +76,42 @@ const OrderDetailPage = () => {
   const statusTranslations = {
     pending: 'Chờ xác nhận',
     confirmed: 'Đã xác nhận',
+    processing: 'Đang xử lý',
     shipped: 'Đang giao',
     delivered: 'Đã giao',
     cancelled: 'Đã hủy',
+  };
+
+  const paymentStatusTranslations = {
+    pending: 'Chờ thanh toán',
+    paid: 'Đã thanh toán',
+    failed: 'Thanh toán thất bại',
+    refunded: 'Đã hoàn tiền',
+  };
+
+  const paymentMethodTranslations = {
+    cod: 'Thanh toán khi nhận hàng',
+    momo: 'Ví MoMo',
+    bank_transfer: 'Chuyển khoản ngân hàng',
+    credit_card: 'Thẻ tín dụng',
+    zalopay: 'ZaloPay',
+  };
+
+  const handleCancelOrder = async () => {
+    const confirmed = window.confirm('Bạn có chắc chắn muốn hủy đơn hàng này không?');
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await dispatch(
+        cancelOrder({ id: order._id, reason: 'Cancelled by customer' })
+      ).unwrap();
+      toast.success('Hủy đơn hàng thành công');
+    } catch (cancelError) {
+      toast.error(cancelError || 'Không thể hủy đơn hàng');
+    }
   };
 
   return (
@@ -155,9 +188,6 @@ const OrderDetailPage = () => {
               <p>
                 {order.shippingAddress.street}, {order.shippingAddress.city}
               </p>
-              <p>
-                {order.shippingAddress.state} {order.shippingAddress.zipCode}
-              </p>
               <p>{order.shippingAddress.country}</p>
             </div>
           </div>
@@ -170,12 +200,12 @@ const OrderDetailPage = () => {
                 <div className="flex justify-between">
                   <span className="text-gray-600">Phương thức:</span>
                   <span className="font-semibold capitalize">
-                    {order.paymentMethod === 'cod' ? 'Thanh toán khi nhận hàng' : order.paymentMethod}
+                    {paymentMethodTranslations[order.paymentMethod] || order.paymentMethod}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Trạng thái:</span>
-                  <span className="font-semibold capitalize">{order.paymentStatus}</span>
+                  <span className="font-semibold capitalize">{paymentStatusTranslations[order.paymentStatus] || order.paymentStatus}</span>
                 </div>
               </div>
             </div>
@@ -216,6 +246,18 @@ const OrderDetailPage = () => {
                   {order.shippingPrice?.toLocaleString('vi-VN')} ₫
                 </span>
               </div>
+              {order.couponCode && (
+                <div className="flex justify-between text-sm text-green-700">
+                  <span>Mã giảm giá</span>
+                  <span className="font-semibold">{order.couponCode}</span>
+                </div>
+              )}
+              {order.discountAmount > 0 && (
+                <div className="flex justify-between text-sm text-green-700">
+                  <span>Giảm giá</span>
+                  <span className="font-semibold">-{order.discountAmount?.toLocaleString('vi-VN')} ₫</span>
+                </div>
+              )}
             </div>
             <div className="flex justify-between mb-4">
               <span className="font-semibold text-gray-900">Tổng tiền:</span>
@@ -225,6 +267,8 @@ const OrderDetailPage = () => {
             </div>
             {['pending', 'confirmed'].includes(order.status) && (
               <button
+                onClick={handleCancelOrder}
+                disabled={loading}
                 className="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition-colors font-semibold"
               >
                 Hủy đơn hàng

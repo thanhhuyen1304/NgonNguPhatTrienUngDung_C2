@@ -2,7 +2,10 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { resetCart } from '../store/slices/cartSlice';
-import api from '../services/api';
+import {
+  buildPaymentResultState,
+  verifyMomoPayment,
+} from '../services/paymentResultService';
 
 const PaymentResultPage = () => {
   const [searchParams] = useSearchParams();
@@ -41,23 +44,22 @@ const PaymentResultPage = () => {
 
   const verifyPayment = async (momoOrderId, momoMsg) => {
     try {
-      const response = await api.get(
-        `/payment/momo/verify?momoOrderId=${encodeURIComponent(momoOrderId)}`
-      );
-      const data = response.data;
+      const result = await verifyMomoPayment(momoOrderId);
+      const nextState = buildPaymentResultState({
+        paymentStatus: result.paymentStatus,
+        order: result.order,
+        momoMessage: result.momoMessage,
+        fallbackMessage: momoMsg,
+      });
 
-      const payStatus = data.data?.paymentStatus;
-      setOrder(data.data?.order);
+      setOrder(nextState.order);
 
-      if (payStatus === 'paid') {
-        // Xóa giỏ hàng Redux (DB đã được xóa bởi backend)
+      if (nextState.status === 'success') {
         dispatch(resetCart());
-        setStatus('success');
-        setMessage('Thanh toán thành công! Cảm ơn bạn đã đặt hàng.');
-      } else {
-        setStatus('failed');
-        setMessage(momoMsg || data.data?.momoMessage || 'Thanh toán thất bại hoặc bị hủy.');
       }
+
+      setStatus(nextState.status);
+      setMessage(nextState.message);
     } catch (err) {
       console.error('Verify error:', err);
       setStatus('failed');
@@ -126,7 +128,7 @@ const PaymentResultPage = () => {
           )}
 
           <p className="text-sm text-gray-400 mb-5">
-            Tự động chuyển sang chi tiết đơn hàng sau <span className="font-bold text-gray-600">{countdown}s</span>
+             Tự động chuyển sang chi tiết đơn hàng sau <span className="font-bold text-gray-600">{countdown} giây</span>
           </p>
 
           <div className="flex gap-3">

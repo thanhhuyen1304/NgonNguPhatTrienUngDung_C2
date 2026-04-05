@@ -1,46 +1,46 @@
 const { body, param, query, validationResult } = require('express-validator');
 
 const strongPasswordRule = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d\s])(?=\S+$).{8,}$/;
-const strongPasswordMessage = 'Password must be at least 8 characters and include uppercase, lowercase, number, special character, and no spaces';
+const strongPasswordMessage = 'Mật khẩu phải có ít nhất 8 ký tự, gồm chữ hoa, chữ thường, số, ký tự đặc biệt và không có dấu cách';
 
 const requiredEmail = (field = 'email') => body(field)
   .trim()
   .notEmpty()
-  .withMessage('Email is required')
+  .withMessage('Email là bắt buộc')
   .isEmail()
-  .withMessage('Please provide a valid email')
+  .withMessage('Vui lòng nhập email hợp lệ')
   .normalizeEmail();
 
-const requiredPassword = (field = 'password', label = 'Password') => body(field)
+const requiredPassword = (field = 'password', label = 'Mật khẩu') => body(field)
   .notEmpty()
-  .withMessage(`${label} is required`);
+  .withMessage(`${label} là bắt buộc`);
 
-const requiredStrongPassword = (field = 'password', label = 'Password') => body(field)
+const requiredStrongPassword = (field = 'password', label = 'Mật khẩu') => body(field)
   .notEmpty()
-  .withMessage(`${label} is required`)
+  .withMessage(`${label} là bắt buộc`)
   .matches(strongPasswordRule)
   .withMessage(strongPasswordMessage);
 
 const optionalMongoId = (field, message) => body(field)
-  .optional()
+  .optional({ checkFalsy: true })
   .isMongoId()
   .withMessage(message);
 
 const requiredMongoId = (field, message) => body(field)
   .notEmpty()
-  .withMessage(`${message} is required`)
+  .withMessage(`${message} là bắt buộc`)
   .isMongoId()
-  .withMessage(`Invalid ${message}`);
+  .withMessage(`${message} không hợp lệ`);
 
 const optionalPage = () => query('page')
   .optional()
   .isInt({ min: 1 })
-  .withMessage('Page must be a positive integer');
+  .withMessage('Trang phải là số nguyên dương');
 
 const optionalLimit = () => query('limit')
   .optional()
   .isInt({ min: 1, max: 1000 })
-  .withMessage('Limit must be between 1 and 1000');
+  .withMessage('Giới hạn phải nằm trong khoảng từ 1 đến 1000');
 
 // Handle validation result
 const handleValidation = (req, res, next) => {
@@ -48,7 +48,7 @@ const handleValidation = (req, res, next) => {
   if (!errors.isEmpty()) {
     return res.status(400).json({
       success: false,
-      message: 'Validation Error',
+      message: 'Lỗi xác thực dữ liệu',
       errors: errors.array().map((err) => ({
         field: err.path,
         message: err.msg,
@@ -63,9 +63,9 @@ const registerValidation = [
   body('name')
     .trim()
     .notEmpty()
-    .withMessage('Name is required')
+    .withMessage('Tên là bắt buộc')
     .isLength({ min: 2, max: 50 })
-    .withMessage('Name must be between 2 and 50 characters'),
+    .withMessage('Tên phải có từ 2 đến 50 ký tự'),
   requiredEmail(),
   requiredStrongPassword(),
   handleValidation,
@@ -86,14 +86,14 @@ const resetPasswordValidation = [
   param('token')
     .trim()
     .notEmpty()
-    .withMessage('Reset token is required'),
-  requiredStrongPassword('newPassword', 'New password'),
+    .withMessage('Thiếu mã đặt lại mật khẩu'),
+  requiredStrongPassword('newPassword', 'Mật khẩu mới'),
   handleValidation,
 ];
 
 const changePasswordValidation = [
-  requiredPassword('currentPassword', 'Current password'),
-  requiredStrongPassword('newPassword', 'New password'),
+  requiredPassword('currentPassword', 'Mật khẩu hiện tại'),
+  requiredStrongPassword('newPassword', 'Mật khẩu mới'),
   handleValidation,
 ];
 
@@ -102,34 +102,34 @@ const productValidation = [
   body('name')
     .trim()
     .notEmpty()
-    .withMessage('Product name is required')
+    .withMessage('Tên sản phẩm là bắt buộc')
     .isLength({ max: 200 })
-    .withMessage('Product name cannot exceed 200 characters'),
+    .withMessage('Tên sản phẩm không được vượt quá 200 ký tự'),
   body('description')
     .trim()
     .notEmpty()
-    .withMessage('Product description is required')
+    .withMessage('Mô tả sản phẩm là bắt buộc')
     .isLength({ max: 2000 })
-    .withMessage('Description cannot exceed 2000 characters'),
+    .withMessage('Mô tả không được vượt quá 2000 ký tự'),
   body('price')
     .notEmpty()
-    .withMessage('Price is required')
+    .withMessage('Giá là bắt buộc')
     .isFloat({ min: 0 })
-    .withMessage('Price must be a positive number'),
+    .withMessage('Giá phải là số không âm'),
   body('comparePrice')
     .optional()
     .isFloat({ min: 0 })
-    .withMessage('Compare price must be a positive number'),
-  requiredMongoId('category', 'category ID'),
+    .withMessage('Giá so sánh phải là số không âm'),
+  requiredMongoId('category', 'ID danh mục'),
   body('stock')
     .optional()
     .isInt({ min: 0 })
-    .withMessage('Stock must be a non-negative integer'),
+    .withMessage('Tồn kho phải là số nguyên không âm'),
   body('brand')
     .optional()
     .trim()
     .isLength({ max: 100 })
-    .withMessage('Brand cannot exceed 100 characters'),
+    .withMessage('Thương hiệu không được vượt quá 100 ký tự'),
   handleValidation,
 ];
 
@@ -138,34 +138,34 @@ const categoryValidation = [
   body('name')
     .trim()
     .notEmpty()
-    .withMessage('Category name is required')
+    .withMessage('Tên danh mục là bắt buộc')
     .isLength({ max: 50 })
-    .withMessage('Category name cannot exceed 50 characters'),
+    .withMessage('Tên danh mục không được vượt quá 50 ký tự'),
   body('description')
     .optional()
     .trim()
     .isLength({ max: 500 })
-    .withMessage('Description cannot exceed 500 characters'),
-  optionalMongoId('parent', 'Invalid parent category ID'),
+    .withMessage('Mô tả không được vượt quá 500 ký tự'),
+  optionalMongoId('parent', 'ID danh mục cha không hợp lệ'),
   handleValidation,
 ];
 
 // Cart validation rules
 const addToCartValidation = [
-  requiredMongoId('productId', 'product ID'),
+  requiredMongoId('productId', 'ID sản phẩm'),
   body('quantity')
     .optional()
     .isInt({ min: 1 })
-    .withMessage('Quantity must be at least 1'),
+    .withMessage('Số lượng phải lớn hơn hoặc bằng 1'),
   handleValidation,
 ];
 
 const updateCartValidation = [
   body('quantity')
     .notEmpty()
-    .withMessage('Quantity is required')
+    .withMessage('Số lượng là bắt buộc')
     .isInt({ min: 0 })
-    .withMessage('Quantity must be a non-negative integer'),
+    .withMessage('Số lượng phải là số nguyên không âm'),
   handleValidation,
 ];
 
@@ -174,52 +174,52 @@ const createOrderValidation = [
   body('shippingAddress.fullName')
     .trim()
     .notEmpty()
-    .withMessage('Full name is required'),
+    .withMessage('Họ và tên là bắt buộc'),
   body('shippingAddress.phone')
     .trim()
     .notEmpty()
-    .withMessage('Phone number is required')
+    .withMessage('Số điện thoại là bắt buộc')
     .matches(/^[0-9+\-\s]+$/)
-    .withMessage('Invalid phone number format'),
+    .withMessage('Định dạng số điện thoại không hợp lệ'),
   body('shippingAddress.street')
     .trim()
     .notEmpty()
-    .withMessage('Street address is required'),
+    .withMessage('Địa chỉ là bắt buộc'),
   body('shippingAddress.city')
     .trim()
     .notEmpty()
-    .withMessage('City is required'),
+    .withMessage('Thành phố là bắt buộc'),
   body('paymentMethod')
     .optional()
     .isIn(['cod', 'bank_transfer', 'credit_card', 'momo', 'zalopay'])
-    .withMessage('Invalid payment method'),
+    .withMessage('Phương thức thanh toán không hợp lệ'),
   body('checkoutRequestKey')
     .optional()
     .isString()
-    .withMessage('checkoutRequestKey must be a string')
+    .withMessage('checkoutRequestKey phải là chuỗi')
     .trim()
     .isLength({ min: 8, max: 100 })
-    .withMessage('checkoutRequestKey must be between 8 and 100 characters'),
+    .withMessage('checkoutRequestKey phải có từ 8 đến 100 ký tự'),
   handleValidation,
 ];
 
 const updateOrderStatusValidation = [
   body('status')
     .notEmpty()
-    .withMessage('Status is required')
+    .withMessage('Trạng thái là bắt buộc')
     .isIn(['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'])
-    .withMessage('Invalid order status'),
+    .withMessage('Trạng thái đơn hàng không hợp lệ'),
   body('note')
     .optional()
     .trim()
     .isLength({ max: 500 })
-    .withMessage('Note cannot exceed 500 characters'),
+    .withMessage('Ghi chú không được vượt quá 500 ký tự'),
   handleValidation,
 ];
 
 // MongoDB ObjectId validation
 const mongoIdValidation = (paramName) => [
-  param(paramName).isMongoId().withMessage(`Invalid ${paramName}`),
+  param(paramName).isMongoId().withMessage(`${paramName} không hợp lệ`),
   handleValidation,
 ];
 
@@ -234,18 +234,18 @@ const supportMessageValidation = [
   body('text')
     .optional()
     .isString()
-    .withMessage('Message text must be a string')
+    .withMessage('Nội dung tin nhắn phải là chuỗi')
     .isLength({ max: 2000 })
-    .withMessage('Message text cannot exceed 2000 characters'),
+    .withMessage('Nội dung tin nhắn không được vượt quá 2000 ký tự'),
   handleValidation,
 ];
 
 const supportConversationStatusValidation = [
   body('status')
     .notEmpty()
-    .withMessage('Status is required')
+    .withMessage('Trạng thái là bắt buộc')
     .isIn(['open', 'closed'])
-    .withMessage('Invalid support conversation status'),
+    .withMessage('Trạng thái hội thoại hỗ trợ không hợp lệ'),
   handleValidation,
 ];
 

@@ -45,11 +45,9 @@ const ContactPage = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Get in Touch
-          </h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Liên hệ với chúng tôi</h1>
           <p className="text-xl text-gray-600">
-            Have a question or feedback? We'd love to hear from you.
+            Nếu bạn có câu hỏi hoặc góp ý, hãy gửi cho chúng tôi.
           </p>
         </div>
 
@@ -69,7 +67,7 @@ const ContactPage = () => {
               </a>
             </p>
             <p className="text-sm text-gray-500 mt-2">
-              We'll respond within 24 hours
+              Chúng tôi sẽ phản hồi trong vòng 24 giờ
             </p>
           </div>
 
@@ -80,14 +78,14 @@ const ContactPage = () => {
                 <PhoneIcon className="h-8 w-8 text-green-600" />
               </div>
             </div>
-            <h3 className="font-semibold text-gray-900 mb-2">Phone</h3>
+            <h3 className="font-semibold text-gray-900 mb-2">Điện thoại</h3>
             <p className="text-gray-600">
               <a href="tel:+1234567890" className="text-blue-600 hover:text-blue-700">
                 +1 (234) 567-890
               </a>
             </p>
             <p className="text-sm text-gray-500 mt-2">
-              Mon-Fri, 9AM-6PM EST
+              Thứ 2 - Thứ 6, 9:00 - 18:00
             </p>
           </div>
 
@@ -98,13 +96,13 @@ const ContactPage = () => {
                 <MapPinIcon className="h-8 w-8 text-red-600" />
               </div>
             </div>
-            <h3 className="font-semibold text-gray-900 mb-2">Location</h3>
+            <h3 className="font-semibold text-gray-900 mb-2">Địa chỉ</h3>
             <p className="text-gray-600">
-              123 Main Street<br />
-              New York, NY 10001
+              123 Đường Chính<br />
+              Quận Trung tâm, TP.HCM
             </p>
             <p className="text-sm text-gray-500 mt-2">
-              Visit our showroom
+              Ghé thăm cửa hàng của chúng tôi
             </p>
           </div>
 
@@ -115,11 +113,11 @@ const ContactPage = () => {
                 <ClockIcon className="h-8 w-8 text-purple-600" />
               </div>
             </div>
-            <h3 className="font-semibold text-gray-900 mb-2">Hours</h3>
+            <h3 className="font-semibold text-gray-900 mb-2">Giờ làm việc</h3>
             <div className="text-gray-600 text-sm">
-              <p>Mon-Fri: 9AM - 6PM</p>
-              <p>Sat: 10AM - 4PM</p>
-              <p>Sun: Closed</p>
+              <p>Thứ 2 - Thứ 6: 9:00 - 18:00</p>
+              <p>Thứ 7: 10:00 - 16:00</p>
+              <p>Chủ nhật: Nghỉ</p>
             </div>
           </div>
         </div>
@@ -129,13 +127,13 @@ const ContactPage = () => {
           {/* Contact Form */}
           <div className="bg-white rounded-lg shadow-md p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              Send us a Message
+              Gửi tin nhắn cho chúng tôi
             </h2>
 
             {submitted && (
               <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
                 <p className="text-green-800">
-                  ✓ Thank you for your message! We'll get back to you soon.
+                  ✓ Cảm ơn bạn đã gửi tin nhắn! Chúng tôi sẽ phản hồi sớm nhất có thể.
                 </p>
               </div>
             )}
@@ -144,7 +142,7 @@ const ContactPage = () => {
               {/* Name */}
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                  Name *
+                  Họ và tên *
                 </label>
                 <input
                   type="text"
@@ -154,7 +152,7 @@ const ContactPage = () => {
                   onChange={handleChange}
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  placeholder="Your name"
+                  placeholder="Nhập họ và tên"
                 />
               </div>
 
@@ -171,14 +169,14 @@ const ContactPage = () => {
                   onChange={handleChange}
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  placeholder="your@email.com"
+                  placeholder="tenban@email.com"
                 />
               </div>
 
               {/* Phone */}
               <div>
                 <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone
+                  Số điện thoại
                 </label>
                 <input
                   type="tel"
@@ -187,14 +185,14 @@ const ContactPage = () => {
                   value={formData.phone}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  placeholder="Your phone number"
+                  placeholder="Nhập số điện thoại"
                 />
               </div>
 
               {/* Subject */}
               <div>
                 <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">
-                  Subject *
+                  Chủ đề *
                 </label>
                 <input
                   type="text"
@@ -204,14 +202,14 @@ const ContactPage = () => {
                   onChange={handleChange}
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  placeholder="What is this about?"
+                  placeholder="Bạn muốn liên hệ về vấn đề gì?"
                 />
               </div>
 
               {/* Message */}
               <div>
                 <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
-                  Message *
+                  Nội dung *
                 </label>
                 <textarea
                   id="message"
@@ -221,7 +219,7 @@ const ContactPage = () => {
                   required
                   rows="5"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
-                  placeholder="Your message here..."
+                  placeholder="Nhập nội dung của bạn..."
                 ></textarea>
               </div>
 
@@ -230,61 +228,61 @@ const ContactPage = () => {
                 type="submit"
                 className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
               >
-                Send Message
+                Gửi tin nhắn
               </button>
             </form>
 
             <p className="text-sm text-gray-500 mt-6 text-center">
-              * Required fields
+              * Trường bắt buộc
             </p>
           </div>
 
           {/* FAQ or Additional Info */}
           <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg shadow-md p-8 text-white">
-            <h2 className="text-2xl font-bold mb-6">Frequently Asked Questions</h2>
+            <h2 className="text-2xl font-bold mb-6">Câu hỏi thường gặp</h2>
 
             <div className="space-y-6">
               <div>
-                <h3 className="font-semibold mb-2">How long does shipping take?</h3>
+                <h3 className="font-semibold mb-2">Thời gian giao hàng mất bao lâu?</h3>
                 <p className="text-blue-100">
-                  Standard shipping takes 5-7 business days. Express shipping is available for 2-3 business days.
+                  Giao hàng tiêu chuẩn thường mất 5-7 ngày làm việc. Giao hàng nhanh có thể từ 2-3 ngày làm việc.
                 </p>
               </div>
 
               <div>
-                <h3 className="font-semibold mb-2">What is your return policy?</h3>
+                <h3 className="font-semibold mb-2">Chính sách đổi trả như thế nào?</h3>
                 <p className="text-blue-100">
-                  We offer 30-day returns on most items. Items must be unused and in original packaging.
+                  Chúng tôi hỗ trợ đổi trả trong vòng 30 ngày với hầu hết sản phẩm. Sản phẩm cần còn nguyên trạng và bao bì gốc.
                 </p>
               </div>
 
               <div>
-                <h3 className="font-semibold mb-2">Do you offer international shipping?</h3>
+                <h3 className="font-semibold mb-2">Có hỗ trợ giao hàng quốc tế không?</h3>
                 <p className="text-blue-100">
-                  Yes, we ship to most countries worldwide. International shipping rates vary by location.
+                  Có. Chúng tôi hỗ trợ giao đến nhiều quốc gia và phí vận chuyển phụ thuộc vào khu vực nhận hàng.
                 </p>
               </div>
 
               <div>
-                <h3 className="font-semibold mb-2">How can I track my order?</h3>
+                <h3 className="font-semibold mb-2">Làm thế nào để theo dõi đơn hàng?</h3>
                 <p className="text-blue-100">
-                  Once your order ships, you'll receive a tracking number via email. You can track it anytime in your account.
+                  Khi đơn hàng được gửi đi, bạn sẽ nhận được mã theo dõi qua email và có thể xem lại bất cứ lúc nào trong tài khoản của mình.
                 </p>
               </div>
 
               <div>
-                <h3 className="font-semibold mb-2">Do you offer customer support?</h3>
+                <h3 className="font-semibold mb-2">Có hỗ trợ khách hàng không?</h3>
                 <p className="text-blue-100">
-                  Yes! Our support team is available Monday-Friday, 9AM-6PM EST via email, phone, or live chat.
+                  Có. Đội ngũ hỗ trợ của chúng tôi hoạt động từ thứ 2 đến thứ 6, từ 9:00 đến 18:00 qua email, điện thoại hoặc chat trực tiếp.
                 </p>
               </div>
             </div>
 
             <div className="mt-8 p-4 bg-blue-500 bg-opacity-30 rounded-lg border border-blue-400">
               <p className="text-sm">
-                <strong>Need help urgently?</strong><br />
-                Contact us via email or phone during business hours for immediate assistance.
-              </p>
+                 <strong>Cần hỗ trợ gấp?</strong><br />
+                 Hãy liên hệ qua email hoặc điện thoại trong giờ làm việc để được hỗ trợ nhanh nhất.
+               </p>
             </div>
           </div>
         </div>

@@ -1,3 +1,5 @@
+import { getApiOrigin } from '../../services/api';
+
 export const getResponsePayload = (response) => response?.data?.data ?? response?.data ?? null;
 
 export const extractConversation = (payload) => {
@@ -65,24 +67,41 @@ export const normalizeAttachment = (attachment, index = 0) => {
     return null;
   }
 
+  const apiOrigin = getApiOrigin();
+
+  const ensureAbsoluteUrl = (url) => {
+    if (!url) {
+      return '';
+    }
+
+    if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) {
+      return url;
+    }
+
+    const normalizedUrl = url.startsWith('/') ? url : `/${url}`;
+    return `${apiOrigin}${normalizedUrl}`;
+  };
+
   if (typeof attachment === 'string') {
+    const url = ensureAbsoluteUrl(attachment);
     return {
       id: `${attachment}-${index}`,
-      url: attachment,
-      originalName: 'Attachment',
+      url,
+      originalName: 'Tệp đính kèm',
       mimeType: '',
-      isImage: isImageUrl(attachment),
+      isImage: isImageUrl(url),
     };
   }
 
-  const url = attachment.url || attachment.secure_url || attachment.path || '';
+  const rawUrl = attachment.url || attachment.secure_url || attachment.path || '';
+  const url = ensureAbsoluteUrl(rawUrl);
   const mimeType = attachment.mimeType || attachment.type || '';
 
   return {
     ...attachment,
     id: attachment._id || attachment.id || `${url}-${index}`,
     url,
-    originalName: attachment.originalName || attachment.name || 'Attachment',
+    originalName: attachment.originalName || attachment.name || 'Tệp đính kèm',
     mimeType,
     isImage: isImageUrl(url, mimeType),
   };
@@ -134,7 +153,7 @@ export const normalizeMessage = (message) => {
     sender,
     senderId: sender?._id || message.senderId || message.sender || null,
     senderRole,
-    senderName: sender?.name || message.senderName || (senderRole === 'admin' ? 'Support' : 'Khách hàng'),
+    senderName: sender?.name || message.senderName || (senderRole === 'admin' ? 'Hỗ trợ' : 'Khách hàng'),
     text: message.text || message.message || message.content || '',
     attachments,
     createdAt,

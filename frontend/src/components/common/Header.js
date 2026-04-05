@@ -14,8 +14,9 @@ import {
   ChevronDownIcon,
   HeartIcon,
 } from '@heroicons/react/24/outline';
+import NotificationBell from './NotificationBell';
 
-const Header = () => {
+const Header = ({ onSidebarToggle }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoriesDropdown, setCategoriesDropdown] = useState(false);
@@ -62,10 +63,21 @@ const Header = () => {
     <header className="bg-white shadow-sm sticky top-0 z-50">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
+          {/* Sidebar Toggle (Mobile) */}
+          {onSidebarToggle && (
+            <button
+              type="button"
+              className="px-4 text-gray-500 hover:text-gray-700 focus:outline-none lg:hidden"
+              onClick={onSidebarToggle}
+            >
+              <Bars3Icon className="h-6 w-6" />
+            </button>
+          )}
+
           {/* Logo */}
           <div className="flex items-center mr-8">
             <Link to="/" className="flex-shrink-0 flex items-center">
-              <span className="text-2xl font-bold text-blue-600">E-commerce</span>
+              <span className="text-2xl font-bold text-blue-600">Thương mại điện tử</span>
             </Link>
           </div>
 
@@ -83,7 +95,7 @@ const Header = () => {
             >
               {t('nav.shop')}
             </Link>
-            
+
             {/* Categories Dropdown */}
             <div className="relative">
               <button
@@ -143,7 +155,7 @@ const Header = () => {
             <Link
               to={isAuthenticated ? "/wishlist" : "/login"}
               className="relative p-2 text-gray-700 hover:text-red-600 transition-colors"
-              title="Wishlist"
+              title={t('nav.wishlist')}
             >
               <HeartIcon className="h-6 w-6" />
               {isAuthenticated && wishlistItemsCount > 0 && (
@@ -152,6 +164,9 @@ const Header = () => {
                 </span>
               )}
             </Link>
+
+            {/* Notifications */}
+            {isAuthenticated && <NotificationBell />}
 
             {/* Cart */}
             <Link
@@ -174,11 +189,11 @@ const Header = () => {
                   onClick={() => setUserDropdown(!userDropdown)}
                   onBlur={() => setTimeout(() => setUserDropdown(false), 200)}
                 >
-                    {user?.avatar ? (
-                      <img src={user.avatar} alt={user?.name} className="h-8 w-8 rounded-full object-cover" />
-                    ) : (
-                      <UserIcon className="h-6 w-6" />
-                    )}
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt={user?.name} className="h-8 w-8 rounded-full object-cover" />
+                  ) : (
+                    <UserIcon className="h-6 w-6" />
+                  )}
                 </button>
                 {userDropdown && (
                   <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50">
@@ -205,6 +220,15 @@ const Header = () => {
                         Hỗ trợ
                       </button>
                     )}
+                    {user?.role === 'shipper' && (
+                      <Link
+                        to="/shipper"
+                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                        onClick={() => setUserDropdown(false)}
+                      >
+                        {t('auth.shipperDashboard')}
+                      </Link>
+                    )}
                     {user?.role === 'admin' && (
                       <Link
                         to="/admin"
@@ -212,15 +236,6 @@ const Header = () => {
                         onClick={() => setUserDropdown(false)}
                       >
                         {t('nav.admin')}
-                      </Link>
-                    )}
-                    {user?.role === 'shipper' && (
-                      <Link
-                        to="/shipper"
-                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
-                        onClick={() => setUserDropdown(false)}
-                      >
-                        Shipper Dashboard
                       </Link>
                     )}
                     <hr className="my-2" />
@@ -308,7 +323,7 @@ const Header = () => {
                 className="block py-2 text-gray-700 hover:text-red-600"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                {t('nav.wishlist') || 'Wishlist'}
+                {t('nav.wishlist')}
               </Link>
               {showSupportChat && (
                 <button

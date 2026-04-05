@@ -7,7 +7,7 @@ const ORDER_STATUS_FLOW = {
 };
 
 // Define which statuses each role can update TO
-const ADMIN_ALLOWED_STATUSES = ['pending', 'confirmed', 'cancelled'];
+const ADMIN_ALLOWED_STATUSES = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
 const SHIPPER_ALLOWED_STATUSES = ['shipped', 'delivered', 'cancelled'];
 
 // Define which statuses are managed by which role
@@ -29,7 +29,8 @@ const validateStatusTransition = (currentStatus, newStatus, userRole = 'admin') 
 
   // Check role-based permissions for target status
   if (userRole === 'admin' && SHIPPER_EXCLUSIVE_STATUSES.includes(newStatus)) {
-    throw new Error(`Admin cannot set status to "${newStatus}". Only shippers can update to shipping/delivery statuses.`);
+    // Admin can override shipper-exclusive statuses
+    console.log(`Admin overriding shipper-exclusive status: ${newStatus}`);
   }
 
   if (userRole === 'shipper' && !SHIPPER_ALLOWED_STATUSES.includes(newStatus)) {

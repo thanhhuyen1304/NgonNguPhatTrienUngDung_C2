@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { getProducts } from '../store/slices/productSlice';
@@ -62,29 +62,28 @@ const ShopPage = () => {
     dispatch(getCategories({ parentOnly: 'true' }));
   }, [dispatch]);
 
-  // Sync filter when slug changes
-  useEffect(() => {
-    if (slug && categories.length > 0) {
-      const category = categories.find((c) => c.slug === slug);
-      if (category) {
-        setFilters((prev) => ({
-          ...prev,
-          category: category._id,
-          page: 1,
-        }));
-      }
-    } else if (!slug) {
-      // If no slug, clear category filter
-      setFilters((prev) => ({
-        ...prev,
-        category: '',
-        page: 1,
-      }));
+  const resolvedSlugCategoryId = useMemo(() => {
+    if (!slug || categories.length === 0) {
+      return null;
     }
+
+    return categories.find((category) => category.slug === slug)?._id || null;
   }, [slug, categories]);
 
   useEffect(() => {
-    const params = { ...filters, limit: filters.showAll ? 1000 : 12 };
+    if (slug && categories.length === 0) {
+      return;
+    }
+
+    if (slug && !resolvedSlugCategoryId) {
+      return;
+    }
+
+    const params = {
+      ...filters,
+      category: slug ? resolvedSlugCategoryId : filters.category,
+      limit: filters.showAll ? 1000 : 12,
+    };
 
     // Remove empty/null values but keep page if set
     Object.keys(params).forEach((key) => {
@@ -94,7 +93,7 @@ const ShopPage = () => {
     });
 
     dispatch(getProducts(params));
-  }, [dispatch, filters]);
+  }, [dispatch, filters, slug, categories.length, resolvedSlugCategoryId]);
 
   const handleFilterChange = (key, value) => {
     // Only reset page when changing category, price, search, or showAll
@@ -140,7 +139,7 @@ const ShopPage = () => {
   const clearFilters = () => {
     setFilters({
       search: '',
-      category: '',
+      category: slug ? resolvedSlugCategoryId || '' : '',
       minPrice: '',
       maxPrice: '',
       sort: 'newest',
