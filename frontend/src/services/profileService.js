@@ -17,6 +17,11 @@ export const createEmptyPasswordData = () => ({
   confirmPassword: '',
 });
 
+export const createAddressText = (address) => {
+  const parts = [address?.street, address?.city, address?.country].filter(Boolean);
+  return parts.join(', ');
+};
+
 export const buildProfileUpdatePayload = (formData) => ({
   name: formData.name,
   phone: formData.phone,

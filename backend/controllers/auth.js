@@ -201,20 +201,25 @@ const updateProfile = asyncHandler(async (req, res) => {
     throw new AppError('Không tìm thấy người dùng', 404);
   }
 
-  user.name = name || user.name;
-  user.phone = phone || user.phone;
+  if (name !== undefined) {
+    user.name = name;
+  }
+
+  if (phone !== undefined) {
+    user.phone = phone;
+  }
 
   const nextAddress = address && typeof address === 'object'
     ? address
     : { street, city, state, zipCode, country };
 
-  if (Object.values(nextAddress).some(Boolean)) {
+  if (Object.values(nextAddress).some((value) => value !== undefined)) {
     user.address = {
-      street: nextAddress.street || user.address?.street,
-      city: nextAddress.city || user.address?.city,
-      state: nextAddress.state || user.address?.state,
-      zipCode: nextAddress.zipCode || user.address?.zipCode,
-      country: nextAddress.country || user.address?.country,
+      street: nextAddress.street !== undefined ? nextAddress.street : user.address?.street,
+      city: nextAddress.city !== undefined ? nextAddress.city : user.address?.city,
+      state: nextAddress.state !== undefined ? nextAddress.state : user.address?.state,
+      zipCode: nextAddress.zipCode !== undefined ? nextAddress.zipCode : user.address?.zipCode,
+      country: nextAddress.country !== undefined ? nextAddress.country : user.address?.country,
     };
   }
 

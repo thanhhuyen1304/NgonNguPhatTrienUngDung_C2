@@ -52,6 +52,9 @@ const buildSafeUser = (user) => ({
   address: user.address,
   shipperInfo: user.shipperInfo,
   isEmailVerified: user.isEmailVerified,
+  isActive: user.isActive,
+  createdAt: user.createdAt,
+  updatedAt: user.updatedAt,
 });
 
 const clearAuthCookies = (res) => {

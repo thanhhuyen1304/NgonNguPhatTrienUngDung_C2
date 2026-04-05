@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateProfile, changePassword, setCredentials, getMe } from '../store/slices/authSlice';
 import toast from 'react-hot-toast';
@@ -7,6 +7,7 @@ import {
   buildAvatarFallbackUser,
   buildProfileUpdateFormData,
   buildProfileUpdatePayload,
+  createAddressText,
   createEmptyPasswordData,
   createProfileFormData,
   validatePasswordChange,
@@ -23,6 +24,11 @@ const ProfilePage = () => {
   const [formData, setFormData] = useState(createProfileFormData(user));
 
   const [passwordData, setPasswordData] = useState(createEmptyPasswordData());
+
+  useEffect(() => {
+    setFormData(createProfileFormData(user));
+    setAvatarPreview(user?.avatar || null);
+  }, [user]);
 
   const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
@@ -302,7 +308,7 @@ const ProfilePage = () => {
                   <div>
                     <p className="text-sm text-gray-600">Địa chỉ</p>
                     <p className="font-semibold">
-                      {user.getFullAddress?.() || 'Chưa cập nhật'}
+                      {createAddressText(user?.address) || 'Chưa cập nhật'}
                     </p>
                   </div>
                 )}
