@@ -46,6 +46,14 @@ const upload = multer({
 });
 
 const deleteImage = async (publicId) => {
+  if (!publicId) {
+    return null;
+  }
+
+  if (!hasCloudinary) {
+    return { result: 'skipped_no_cloudinary' };
+  }
+
   try {
     return await cloudinary.uploader.destroy(publicId);
   } catch (error) {
