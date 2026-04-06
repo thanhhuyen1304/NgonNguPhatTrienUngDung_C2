@@ -27,14 +27,30 @@ const getFolder = (req, file) => {
   return 'ecommerce/products';
 };
 
+const getUploadParams = (req, file) => {
+  const folder = getFolder(req, file);
+
+  if (req.path.includes('/support/')) {
+    return {
+      folder,
+      resource_type: 'auto',
+      use_filename: true,
+      unique_filename: true,
+      filename_override: file.originalname,
+    };
+  }
+
+  return {
+    folder,
+    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'jfif'],
+    transformation: [{ width: 400, height: 400, crop: 'fill' }],
+  };
+};
+
 const storage = hasCloudinary
   ? new CloudinaryStorage({
       cloudinary,
-      params: async (req, file) => ({
-        folder: getFolder(req, file),
-        allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-        transformation: [{ width: 400, height: 400, crop: 'fill' }],
-      }),
+      params: async (req, file) => getUploadParams(req, file),
     })
   : multer.memoryStorage();
 
@@ -74,10 +90,24 @@ const uploadImage = async (filePath, folder = 'ecommerce/products') => {
   }
 };
 
-const uploadBuffer = (buffer, folder = 'ecommerce/avatars') => {
+const uploadBuffer = (buffer, folder = 'ecommerce/avatars', options = {}) => {
+  const isSupportUpload = folder === 'ecommerce/support';
+  const uploadOptions = isSupportUpload
+    ? {
+        folder,
+        resource_type: options.resource_type || 'auto',
+        use_filename: true,
+        unique_filename: true,
+        filename_override: options.filename_override,
+      }
+    : {
+        folder,
+        transformation: [{ width: 400, height: 400, crop: 'fill' }],
+      };
+
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
-      { folder, transformation: [{ width: 400, height: 400, crop: 'fill' }] },
+      uploadOptions,
       (error, result) => {
         if (error) return reject(error);
         resolve(result);

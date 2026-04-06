@@ -61,7 +61,10 @@ const normalizeAttachments = async (files = []) => {
         continue;
       }
 
-      const uploaded = await uploadBuffer(file.buffer, SUPPORT_FOLDER);
+      const uploaded = await uploadBuffer(file.buffer, SUPPORT_FOLDER, {
+        resource_type: 'auto',
+        filename_override: file.originalname,
+      });
       attachments.push({
         url: uploaded.secure_url || uploaded.url,
         publicId: uploaded.public_id || null,
