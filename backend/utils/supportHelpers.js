@@ -11,27 +11,16 @@ const LOCAL_SUPPORT_UPLOAD_DIR = path.join(__dirname, '..', 'uploads', 'support'
 
 const buildMessagePreview = (text, attachmentsCount) => {
   const trimmed = (text || '').trim();
-
-  if (trimmed) {
-    return trimmed.slice(0, 200);
-  }
-
-  if (attachmentsCount > 0) {
-    return attachmentsCount === 1 ? '[Image]' : `[${attachmentsCount} images]`;
-  }
-
+  if (trimmed) return trimmed.slice(0, 200);
+  if (attachmentsCount > 0) return attachmentsCount === 1 ? '[Image]' : `[${attachmentsCount} images]`;
   return '';
 };
 
 const ensureConversationAccess = (conversation, user) => {
-  if (user.role === 'admin') {
-    return true;
-  }
-
+  if (user.role === 'admin') return true;
   if (conversation.user.toString() !== user._id.toString()) {
     throw new AppError('Not authorized to access this conversation', 403);
   }
-
   return true;
 };
 
@@ -42,7 +31,6 @@ const populateMessage = (query) => query.populate('sender', 'name email avatar r
 
 const normalizeAttachments = async (files = []) => {
   const attachments = [];
-
   await fs.mkdir(LOCAL_SUPPORT_UPLOAD_DIR, { recursive: true });
 
   for (const file of files) {
@@ -62,9 +50,7 @@ const normalizeAttachments = async (files = []) => {
         const extension = path.extname(file.originalname || '') || '.png';
         const fileName = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${extension}`;
         const filePath = path.join(LOCAL_SUPPORT_UPLOAD_DIR, fileName);
-
         await fs.writeFile(filePath, file.buffer);
-
         attachments.push({
           url: `/uploads/support/${fileName}`,
           publicId: fileName,
@@ -149,16 +135,14 @@ const createSupportMessage = async ({ conversation, sender, senderRole, text, fi
   const populatedMessage = await populateMessage(SupportMessage.findById(message._id));
   const populatedConversation = await populateConversation(SupportConversation.findById(conversation._id));
 
-  return {
-    message: populatedMessage,
-    conversation: populatedConversation,
-  };
+  return { message: populatedMessage, conversation: populatedConversation };
 };
 
 module.exports = {
   ensureConversationAccess,
   populateConversation,
   populateMessage,
+  normalizeAttachments,
   markConversationRead,
   createSupportMessage,
 };

@@ -1,4 +1,3 @@
-const mongoose = require('mongoose');
 const Coupon = require('../schemas/Coupon');
 const { AppError } = require('../middleware/error');
 
@@ -32,11 +31,9 @@ const buildCouponPayload = (payload = {}) => ({
 
 const getCouponOrThrow = async (couponId) => {
   const coupon = await Coupon.findById(couponId);
-
   if (!coupon) {
     throw new AppError('Coupon not found', 404);
   }
-
   return coupon;
 };
 
@@ -68,11 +65,7 @@ const validateCoupon = async ({ code, userId, orderAmount = 0 }) => {
     return { valid: false, reason: 'Coupon does not apply to this order amount' };
   }
 
-  return {
-    valid: true,
-    coupon,
-    discountAmount,
-  };
+  return { valid: true, coupon, discountAmount };
 };
 
 const applyCouponToOrder = async ({ coupon, userId, session }) => {
@@ -80,63 +73,25 @@ const applyCouponToOrder = async ({ coupon, userId, session }) => {
     throw new Error('Coupon is required to apply');
   }
 
-  const updateQuery = { _id: coupon._id };
-  const updatePayload = {
-    $inc: { usedCount: 1 },
-  };
-
+  const updatePayload = { $inc: { usedCount: 1 } };
   if (coupon.oncePerUser) {
     updatePayload.$addToSet = { appliedUsers: userId };
   }
-
   if (coupon.usageLimit > 0 && coupon.usedCount + 1 >= coupon.usageLimit) {
     updatePayload.$set = { status: 'expired' };
   }
 
-  const updated = await Coupon.findOneAndUpdate(updateQuery, updatePayload, {
-    new: true,
-    session,
-  });
+  const updated = await Coupon.findOneAndUpdate(
+    { _id: coupon._id },
+    updatePayload,
+    { new: true, session }
+  );
 
   if (!updated) {
     throw new Error('Failed to update coupon usage');
   }
 
   return updated;
-};
-
-const createCoupon = async (payload = {}) => {
-  const coupon = await Coupon.create(buildCouponPayload(payload));
-  return { coupon };
-};
-
-const getCoupons = async () => {
-  const coupons = await Coupon.find().sort({ createdAt: -1 });
-  return { coupons };
-};
-
-const updateCoupon = async (couponId, payload = {}) => {
-  const coupon = await getCouponOrThrow(couponId);
-
-  coupon.code = payload.code || coupon.code;
-  coupon.discountType = payload.discountType || coupon.discountType;
-  coupon.discountValue = payload.discountValue ?? coupon.discountValue;
-  coupon.minOrderValue = payload.minOrderValue ?? coupon.minOrderValue;
-  coupon.maxDiscount = payload.maxDiscount ?? coupon.maxDiscount;
-  coupon.oncePerUser = payload.oncePerUser ?? coupon.oncePerUser;
-  coupon.startDate = payload.startDate || coupon.startDate;
-  coupon.endDate = payload.endDate || coupon.endDate;
-  coupon.usageLimit = payload.usageLimit ?? coupon.usageLimit;
-  coupon.status = payload.status || coupon.status;
-
-  await coupon.save();
-
-  return { coupon };
-};
-
-const deleteCoupon = async (couponId) => {
-  const coupon = await getCouponOrThrow(couponId);
-  await coupon.deleteOne();
 };
 
 const validateCouponCode = async ({ code, userId, orderAmount = 0 }) => {
@@ -154,13 +109,11 @@ const validateCouponCode = async ({ code, userId, orderAmount = 0 }) => {
 
 module.exports = {
   serializeCoupon,
-  createCoupon,
-  getCoupons,
-  updateCoupon,
-  deleteCoupon,
+  buildCouponPayload,
+  getCouponOrThrow,
   getCouponByCode,
   calculateCouponDiscount,
   validateCoupon,
-  validateCouponCode,
   applyCouponToOrder,
+  validateCouponCode,
 };
