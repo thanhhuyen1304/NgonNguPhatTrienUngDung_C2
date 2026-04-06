@@ -265,7 +265,9 @@
           "name": "Admin Upload Product Images",
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
             "const json = pm.response.json();",
-            "if (json?.data?.images?.[0]?._id) pm.collectionVariables.set('imageId', json.data.images[0]._id);"
+            "const images = json?.data?.images || [];",
+            "const newestImage = images[images.length - 1];",
+            "if (newestImage?._id) pm.collectionVariables.set('imageId', newestImage._id);"
           ] } }],
           "request": {
             "method": "POST",
@@ -346,6 +348,11 @@
       "item": [
         {
           "name": "Create MoMo Payment",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const json = pm.response.json();",
+            "if (json?.data?.momoOrderId) pm.collectionVariables.set('paymentOrderId', json.data.momoOrderId);",
+            "if (json?.data?.orderId) pm.collectionVariables.set('orderId', json.data.orderId);"
+          ] } }],
           "request": {
             "method": "POST",
             "header": [{ "key": "Authorization", "value": "Bearer {{customerAccessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
@@ -354,7 +361,7 @@
           }
         },
         { "name": "Verify MoMo Payment", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{customerAccessToken}}" }], "url": { "raw": "{{baseUrl}}/payment/momo/verify?momoOrderId={{paymentOrderId}}", "host": ["{{baseUrl}}"], "path": ["payment", "momo", "verify"], "query": [{ "key": "momoOrderId", "value": "{{paymentOrderId}}" }] } } },
-        { "name": "MoMo IPN Callback", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"orderId\": \"{{paymentOrderId}}\",\n  \"resultCode\": 0\n}" }, "url": { "raw": "{{baseUrl}}/payment/momo/ipn", "host": ["{{baseUrl}}"], "path": ["payment", "momo", "ipn"] } } }
+        { "name": "MoMo IPN Callback (Mock shape only)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"partnerCode\": \"MOMOBKUN20180529\",\n  \"orderId\": \"{{paymentOrderId}}\",\n  \"requestId\": \"test-request-id\",\n  \"amount\": 100000,\n  \"orderInfo\": \"Thanh toán đơn hàng\",\n  \"orderType\": \"momo_wallet\",\n  \"transId\": 1234567890,\n  \"resultCode\": 0,\n  \"message\": \"Successful.\",\n  \"payType\": \"qr\",\n  \"responseTime\": 1710000000000,\n  \"extraData\": \"\",\n  \"signature\": \"replace-with-valid-momo-signature\"\n}" }, "description": "Dùng để tham khảo shape payload MoMo callback. Endpoint thật yêu cầu chữ ký hợp lệ, nên request này không phải smoke test thủ công hoàn chỉnh.", "url": { "raw": "{{baseUrl}}/payment/momo/ipn", "host": ["{{baseUrl}}"], "path": ["payment", "momo", "ipn"] } } }
       ]
     },
     {

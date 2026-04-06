@@ -78,6 +78,7 @@ Mot so request co Postman test script de luu bien phuc vu request sau:
 - `Get My Support Conversation`
 - `Get Notifications`
 - `Upload Single Image`
+- `Create MoMo Payment`
 
 ## 6. Cach import
 
@@ -106,6 +107,11 @@ Mot so request co Postman test script de luu bien phuc vu request sau:
 9. `Support` phan user
 10. `Notifications`
 
+Sau `Create MoMo Payment`, collection se tu dong luu:
+
+- `orderId`
+- `paymentOrderId` (lay tu `momoOrderId`)
+
 Luu y: backend hien tai dung `customerOnly` cho `Cart`, `Wishlist`, `Orders`, `Payment`. Admin se bi chan 403 o cac nhom nay.
 
 ### Luong admin
@@ -125,12 +131,17 @@ Luu y: backend hien tai dung `customerOnly` cho `Cart`, `Wishlist`, `Orders`, `P
 Van co mot so bien can ban tu cap nhat tuy theo du lieu thuc te:
 
 - `resetToken`
-- `paymentOrderId`
 - `notificationId`
 - `imageId`
 - `imagePublicId`
 
 Ngoai ra, cac request slug mau nhu `sample-product` hoac `sample-slug` can doi theo du lieu that cua DB.
+
+Luu y rieng voi `MoMo IPN Callback`:
+
+- request nay chi duoc cap nhat de dung **shape payload** ma backend dang verify
+- de callback thanh cong that su, can co `signature` hop le do MoMo tao
+- vi vay day khong phai request smoke-test thu cong hoan chinh nhu cac endpoint CRUD thong thuong
 
 ## 9. Nhung thay doi quan trong so voi bo cu
 
@@ -143,6 +154,9 @@ Ngoai ra, cac request slug mau nhu `sample-product` hoac `sample-slug` can doi t
 - Da them order stats/revenue/payment update
 - Da them upload multiple/delete
 - Da doi strategy token tu 1 bien thanh token theo role
+- Da sua script luu `imageId` de lay dung anh vua upload
+- Da sua flow MoMo de tu luu `paymentOrderId`
+- Da doi request IPN thanh request tham khao dung payload hien tai
 
 ## 10. Ket luan
 
