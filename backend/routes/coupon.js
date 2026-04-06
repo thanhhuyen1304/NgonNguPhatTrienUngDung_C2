@@ -1,7 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const asyncHandler = require('express-async-handler');
-const couponService = require('../services/couponService');
+const {
+  createCoupon,
+  getCoupons,
+  updateCoupon,
+  deleteCoupon,
+  validateCouponCode,
+  applyCoupon,
+} = require('../controllers/coupon');
 const { protect, admin } = require('../middleware/auth');
 const { body, param, query, validationResult } = require('express-validator');
 
@@ -110,31 +116,9 @@ const couponUpdateValidation = [
   handleValidation,
 ];
 
-router.post('/', protect, admin, couponValidation, asyncHandler(async (req, res) => {
-  const data = await couponService.createCoupon(req.body);
-
-  res.status(201).json({
-    success: true,
-    message: 'Coupon created successfully',
-    data,
-  });
-}));
-
-router.get('/', protect, admin, asyncHandler(async (req, res) => {
-  const data = await couponService.getCoupons();
-  res.json({ success: true, data });
-}));
-
-router.get('/validate/:code', protect, asyncHandler(async (req, res) => {
-  const data = await couponService.validateCouponCode({
-    code: req.params.code,
-    userId: req.user?._id,
-    orderAmount: Number(req.query.orderAmount) || 0,
-  });
-
-  res.json({ success: true, data });
-}));
-
+router.post('/', protect, admin, couponValidation, createCoupon);
+router.get('/', protect, admin, getCoupons);
+router.get('/validate/:code', protect, validateCouponCode);
 router.post('/apply', protect, [
   body('code')
     .trim()
@@ -145,33 +129,8 @@ router.post('/apply', protect, [
     .isFloat({ min: 0 })
     .withMessage('Order amount must be a non-negative number'),
   handleValidation,
-], asyncHandler(async (req, res) => {
-  const data = await couponService.validateCouponCode({
-    code: req.body.code,
-    userId: req.user._id,
-    orderAmount: req.body.orderAmount || 0,
-  });
-
-  res.json({ success: true, data });
-}));
-
-router.put('/:id', protect, admin, couponUpdateValidation, asyncHandler(async (req, res) => {
-  const data = await couponService.updateCoupon(req.params.id, req.body);
-
-  res.json({
-    success: true,
-    message: 'Coupon updated successfully',
-    data,
-  });
-}));
-
-router.delete('/:id', protect, admin, asyncHandler(async (req, res) => {
-  await couponService.deleteCoupon(req.params.id);
-
-  res.json({
-    success: true,
-    message: 'Coupon deleted successfully',
-  });
-}));
+], applyCoupon);
+router.put('/:id', protect, admin, couponUpdateValidation, updateCoupon);
+router.delete('/:id', protect, admin, deleteCoupon);
 
 module.exports = router;
